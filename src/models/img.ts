@@ -229,17 +229,24 @@ export const EmbeddingOptionsSchema = z.object({
 export type EmbeddingOptions = z.input<typeof EmbeddingOptionsSchema>;
 
 /**
- * Options for converting an image to PDF format.
- * Controls quality, size, DPI, and optional blank page embedding.
+ * Base schema for image to PDF options (without refinements).
+ * Used for partial options in request schemas.
  */
-export const ImgToPdfOptionsSchema = z.object({
+const ImgToPdfOptionsBaseSchema = z.object({
     img_quality: PdfImgQualitySchema.default(70).describe("Image quality in PDF (1-100). Default: 70"),
     img_color: PdfImgColorSchema.default("original").describe("Color mode. Default: original"),
     max_size: PdfPageSizeSchema.default({ width: 210, height: 297 }).describe("Max size (width, height) in mm. Default: A4 (210x297)"),
     max_dpi: DPISchema.default(120).describe("Maximum DPI for downsampling. Default: 120"),
     min_dpi: DPISchema.default(100).describe("Minimum DPI for sizing. Default: 100"),
     embed_in_blank_page: EmbeddingOptionsSchema.optional().nullable().describe("Embed in a blank page of specified size"),
-}).refine((data) => {
+}).describe("PDF conversion options");
+
+/**
+ * Options for converting an image to PDF format.
+ * Controls quality, size, DPI, and optional blank page embedding.
+ * Includes validation refinements for DPI and embedding size constraints.
+ */
+export const ImgToPdfOptionsSchema = ImgToPdfOptionsBaseSchema.refine((data) => {
     if (data.min_dpi && data.max_dpi && data.max_dpi < data.min_dpi) {
         return false;
     }
@@ -260,7 +267,7 @@ export const ImgToPdfOptionsSchema = z.object({
 }, {
     message: "embedding size must be >= max_size",
     path: ["embed_in_blank_page"],
-}).describe("PDF conversion options");
+});
 export type ImgToPdfOptions = z.input<typeof ImgToPdfOptionsSchema>;
 
 /**
@@ -268,7 +275,7 @@ export type ImgToPdfOptions = z.input<typeof ImgToPdfOptionsSchema>;
  */
 export const ImgToPdfRequestSchema = z.object({
     img_handle: ImgHandleSchema.describe("Handle to the image to convert"),
-    options: ImgToPdfOptionsSchema.partial().optional().describe("PDF conversion options"),
+    options: ImgToPdfOptionsBaseSchema.partial().optional().describe("PDF conversion options"),
 }).describe("Image to PDF conversion request");
 export type ImgToPdfRequest = z.input<typeof ImgToPdfRequestSchema>;
 
@@ -339,7 +346,7 @@ export type ImgExtractQuadrilateralResponse = z.infer<typeof ImgExtractQuadrilat
  */
 export const ImgOcrToPdfRequestSchema = z.object({
     img_handle: ImgHandleSchema.describe("Handle to the image for OCR"),
-    options: ImgToPdfOptionsSchema.partial().optional().describe("PDF conversion options"),
+    options: ImgToPdfOptionsBaseSchema.partial().optional().describe("PDF conversion options"),
 }).describe("Image OCR to PDF request");
 export type ImgOcrToPdfRequest = z.input<typeof ImgOcrToPdfRequestSchema>;
 
