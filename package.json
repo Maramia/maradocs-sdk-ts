@@ -50,8 +50,10 @@
     "packageManager": "pnpm@10.12.4",
     "dependencies": {
         "js-md5": "^0.8.3",
-        "libsodium-wrappers": "^0.7.15",
-        "zod": "^4.1.12"
+        "libsodium-wrappers": "^0.7.15"
+    },
+    "peerDependencies": {
+        "zod": "^4.0.0"
     },
     "devDependencies": {
         "@types/js-md5": "^0.8.0",
