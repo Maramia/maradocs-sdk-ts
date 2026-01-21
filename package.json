@@ -4,6 +4,16 @@
     "description": "TypeScript SDK for MaraDocs API (https://maradocs.io)",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "default": "./dist/index.js"
+        },
+        "./models/*": {
+            "types": "./dist/models/*.d.ts",
+            "default": "./dist/models/*.js"
+        }
+    },
     "files": [
         "dist",
         "README.md",
