@@ -45,9 +45,12 @@
     },
     "homepage": "https://maradocs.io",
     "bugs": {
-        "url": "https://github.com/maramia/maradocs-sdk-typescript/issues"
+        "url": "https://github.com/maramia/maradocs-sdk-ts/issues"
     },
     "packageManager": "pnpm@10.12.4",
+    "publishConfig": {
+        "access": "public"
+    },
     "dependencies": {
         "js-md5": "^0.8.3",
         "libsodium-wrappers": "^0.7.15"
