@@ -1,3 +1,4 @@
+export { API_URL_V1 } from "./shared/apiUrl";
 export { MaraDocsClient } from "./MaraDocsClient/index";
 export { MaraDocsServer } from "./MaraDocsServer/index";
 
