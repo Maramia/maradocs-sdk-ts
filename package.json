@@ -12,6 +12,10 @@
         "./models/*": {
             "types": "./dist/models/*.d.ts",
             "default": "./dist/models/*.js"
+        },
+        "./shared/*": {
+            "types": "./dist/shared/*.d.ts",
+            "default": "./dist/shared/*.js"
         }
     },
     "files": [
