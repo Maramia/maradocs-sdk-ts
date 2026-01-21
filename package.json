@@ -1,0 +1,48 @@
+{
+    "name": "@maramia/maradocs-sdk-ts",
+    "version": "1.0.0",
+    "description": "TypeScript SDK for MaraDocs API (https://maradocs.io)",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "files": [
+        "dist",
+        "README.md",
+        "LICENSE.md"
+    ],
+    "scripts": {
+        "build": "tsc",
+        "prepublishOnly": "npm run build"
+    },
+    "keywords": [
+        "maradocs",
+        "api",
+        "sdk",
+        "typescript",
+        "pdf",
+        "email",
+        "document-generation"
+    ],
+    "author": "Maramia GmbH",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/maramia/maradocs-sdk-typescript.git"
+    },
+    "homepage": "https://maradocs.io",
+    "bugs": {
+        "url": "https://github.com/maramia/maradocs-sdk-typescript/issues"
+    },
+    "packageManager": "pnpm@10.12.4",
+    "dependencies": {
+        "js-md5": "^0.8.3",
+        "libsodium-wrappers": "^0.7.15",
+        "zod": "^4.1.12"
+    },
+    "devDependencies": {
+        "@types/js-md5": "^0.8.0",
+        "@types/libsodium-wrappers": "^0.7.14",
+        "@types/node": "^25.0.9",
+        "dotenv": "^17.2.3",
+        "typescript": "^5.9.3"
+    }
+}
