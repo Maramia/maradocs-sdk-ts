@@ -2,7 +2,7 @@
  * Email parsing and validation models for the MaraDocs API.
  * @module email
  */
-import { z } from "zod";
+import { z } from "zod/v4";
 import {
     UnvalidatedFileHandleSchema,
     Str255Schema,

@@ -2,7 +2,7 @@
  * Data upload and download models for file handling in the MaraDocs API.
  * @module data
  */
-import { z } from "zod";
+import { z } from "zod/v4";
 import { PdfHandleSchema, JpegHandleSchema, PngHandleSchema, ConfidenceSchema, UnvalidatedFileHandleSchema, OdtHandleSchema } from "./misc";
 
 // ============================================================================

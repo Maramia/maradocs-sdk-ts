@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "zod/v4";
 import { HttpErrorResponseSchema, ApiErrorException } from "../models/errors";
 
 const MAX_RETRIES = 120; // The backend waits 10 seconds per GET request. We will retry for up to one hour.

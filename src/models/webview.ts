@@ -2,7 +2,7 @@
  * Webview models for interactive file viewing in the web app.
  * @module webview
  */
-import { z } from "zod";
+import { z } from "zod/v4";
 import { FileHandleSchema, ImgHandleSchema, PdfHandleSchema } from "./misc";
 
 // ============================================================================

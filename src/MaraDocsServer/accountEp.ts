@@ -1,6 +1,6 @@
 import * as acc from "../models/account";
 import { FetchWrapper } from "../shared/fetchWrapper";
-import { z } from "zod";
+import { z } from "zod/v4";
 
 // Schema for void responses
 const NullSchema = z.null();

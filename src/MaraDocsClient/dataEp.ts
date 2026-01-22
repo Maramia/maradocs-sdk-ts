@@ -48,7 +48,6 @@ export class DataEp {
       request,
       data.DataUploadResponseSchema,
     );
-    console.log("uploading to S3 with SSE-C", response.post_url);
 
     if (typeof XMLHttpRequest !== "undefined") {
       return this.uploadWithXHR(file, response, on_progress);

@@ -19,7 +19,6 @@ export class HealthcheckEp {
 
             return response.ok;
         } catch (error) {
-            console.log("[HEALTHCHECK_EP] healtcheck/ping: failed to ping the api:", error);
             return false;
         }
     }

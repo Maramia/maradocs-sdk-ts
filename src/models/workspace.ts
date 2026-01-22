@@ -2,7 +2,7 @@
  * Workspace management models for the MaraDocs API.
  * @module workspace
  */
-import { z } from "zod";
+import { z } from "zod/v4";
 
 // ============================================================================
 // Workspace Creation

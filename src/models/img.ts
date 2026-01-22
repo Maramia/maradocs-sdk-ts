@@ -2,7 +2,7 @@
  * Image processing and conversion models for the MaraDocs API.
  * @module img
  */
-import { z } from "zod";
+import { z } from "zod/v4";
 import {
     ImgHandleSchema,
     PngHandleSchema,

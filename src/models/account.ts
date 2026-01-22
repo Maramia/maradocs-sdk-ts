@@ -2,7 +2,7 @@
  * Account and subaccount management models for the MaraDocs API.
  * @module account
  */
-import { z } from "zod";
+import { z } from "zod/v4";
 import {
     UUIDSchema,
     NonNegativeIntSchema,

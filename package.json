@@ -1,6 +1,6 @@
 {
     "name": "@maramia/maradocs-sdk-ts",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "description": "TypeScript SDK for MaraDocs API (https://maradocs.io)",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
@@ -52,17 +52,12 @@
         "access": "public"
     },
     "dependencies": {
-        "js-md5": "^0.8.3",
-        "libsodium-wrappers": "^0.7.15"
-    },
-    "peerDependencies": {
-        "zod": "^4.0.0"
+        "js-md5": "^0.8.0",
+        "zod": "^4.3.5"
     },
     "devDependencies": {
         "@types/js-md5": "^0.8.0",
-        "@types/libsodium-wrappers": "^0.7.14",
         "@types/node": "^25.0.9",
-        "dotenv": "^17.2.3",
         "typescript": "^5.9.3"
     }
 }
