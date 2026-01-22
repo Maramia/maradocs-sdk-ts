@@ -1,6 +1,6 @@
 # MaraDocs TypeScript SDK
 
-Official TypeScript SDK for the [MaraDocs API](https://maradocs.io) - a document processing API for PDFs, images, emails, and HTML.
+Official TypeScript SDK for the [MaraDocs API](https://maradocs.io) - OCR and document processing for PDFs, images, emails, and HTML.
 
 ## Installation
 
@@ -8,215 +8,165 @@ Official TypeScript SDK for the [MaraDocs API](https://maradocs.io) - a document
 npm install @maramia/maradocs-sdk-ts
 ```
 
+## Documentation
+
+Full API documentation: [api.maradocs.io](https://api.maradocs.io)
+
 ## Quick Start
 
-The SDK provides two main clients:
+```typescript
+import { MaraDocsServer, MaraDocsClient } from "@maramia/maradocs-sdk-ts";
 
-- **`MaraDocsClient`** - For client-side (browser) operations using a publishable key
-- **`MaraDocsServer`** - For server-side operations using a secret key
+// Server-side: create workspace and send publishable_key to client
+const server = new MaraDocsServer({ secretKey: process.env.MARADOCS_SECRET_KEY! });
+const ws = await server.workspace.create({});
 
-### Client-Side Usage
+// Client-side: OCR documents and combine into single PDF
+const client = new MaraDocsClient({ publishableKey: ws.publishable_key });
+const imgPdf = await client.flow.ocrImg(imageFile);   // image → searchable PDF
+const pdfPdf = await client.flow.ocrPdf(pdfFile);     // PDF → searchable PDF
+const combined = await client.pdf.compose({ pdfs: [{ pdf_handle: imgPdf }, { pdf_handle: pdfPdf }] });
+const blob = await client.data.downloadPdf({ pdf_handle: combined.pdf_handle });
+```
+
+## Clients
+
+| Client | Use Case | Authentication |
+|--------|----------|----------------|
+| `MaraDocsClient` | Client-side (browser) document processing | Publishable key |
+| `MaraDocsServer` | Server-side workspace management | Secret key |
+
+## Error Handling
+All errors from incorrect API usage are returned as `400 Bad Request`.    
+Insufficient credits are returned as `402 Payment Required`.  
+Validation errors are returned as `422 Unprocessable Entity`.  
+Internal errors are returned as `500 Internal Server Error`.  
+
+API errors throw an `ApiErrorException` with both machine-readable codes and human-readable messages:
 
 ```typescript
-import { MaraDocsClient } from "@maramia/maradocs-sdk-ts";
+import { ApiErrorException } from "@maramia/maradocs-sdk-ts/models/errors";
 
-const client = new MaraDocsClient({
-  publishableKey: "your_publishable_key",
-});
-
-// Upload a file
-const file = new File([pdfBytes], "document.pdf", { type: "application/pdf" });
-const uploadResult = await client.data.upload(file, (progress) => {
-  console.log(`Upload progress: ${progress}%`);
-});
-
-// Validate the PDF
-const validated = await client.pdf.validate({
-  unvalidated_file_handle: uploadResult.unvalidated_file_handle,
-});
-
-if (validated.response.class_name === "PdfValidateResponseOk") {
-  const pdfHandle = validated.response.pdf_handle;
-  // Use pdfHandle for further operations...
+try {
+  await client.pdf.compose({ pdfs: [{ pdf_handle: pdf, pages: [{ page_number: 999 }] }] });
+} catch (e) {
+  if (e instanceof ApiErrorException) {
+    console.log(e.api_error.code);    // e.g. 300 (PDF_PAGE_OUT_OF_RANGE)
+    console.log(e.api_error.message); // human-readable explanation
+  }
 }
 ```
 
-### Server-Side Usage
+See [errors.ts](https://github.com/Maramia/maradocs-sdk-ts/blob/main/src/models/errors.ts) for all error codes.
+
+## API Reference
+
+### Server Operations (`server.workspace`)
+
+| Method | Description |
+|--------|-------------|
+| `workspace.create` | Create a new workspace |
+| `workspace.delete` | Delete a workspace |
+
+### PDF Operations (`client.pdf`)
+
+| Method | Description |
+|--------|-------------|
+| `validate` | Validate PDF (virus scan + encoding check) |
+| `compose` | Merge/split PDFs by selecting pages |
+| `optimize` | Reduce file size |
+| `rotate` | Rotate specific pages |
+| `toImg` | Render pages as images |
+| `orientation` | Detect and fix page orientation |
+| `ocrToPdf` | Create searchable PDF with text layer |
+
+### Image Operations (`client.img`)
+
+| Method | Description |
+|--------|-------------|
+| `validate` | Validate image |
+| `thumbnail` | Create thumbnail |
+| `findDocuments` | Detect documents in photo |
+| `extractQuadrilateral` | Extract and correct perspective |
+| `orientation` | Detect and fix orientation |
+| `rotate` | Rotate by 0°/90°/180°/270° |
+| `toJpeg` | Convert to JPEG |
+| `toPng` | Convert to PNG |
+| `toPdf` | Convert to PDF |
+| `ocrToPdf` | OCR to searchable PDF |
+
+### HTML Operations (`client.html`)
+
+| Method | Description |
+|--------|-------------|
+| `validate` | Validate HTML |
+| `toPdf` | Convert to PDF |
+
+### Email Operations (`client.email`)
+
+| Method | Description |
+|--------|-------------|
+| `validate` | Parse and validate .eml/.msg files and extract attachments |
+
+### Data Operations (`client.data`)
+
+| Method | Description |
+|--------|-------------|
+| `upload` | Upload file with progress tracking |
+| `mimeType` | Detect MIME type |
+| `downloadPdf` | Download as Blob |
+| `downloadJpeg` | Download as Blob |
+| `downloadPng` | Download as Blob |
+
+
+
+## Examples
+
+### Merge/Split PDFs
 
 ```typescript
-import { MaraDocsServer } from "@maramia/maradocs-sdk-ts";
+// Upload PDFs
+const uploadedPdf1 = await client.data.upload(pdf1File);
+const uploadedPdf2 = await client.data.upload(pdf2File);
 
-const server = new MaraDocsServer({
-  secretKey: process.env.MARADOCS_SECRET_KEY!,
-});
+// Validate PDFs
+const pdf1 = await client.pdf.validate({ unvalidated_file_handle: uploadedPdf1.unvalidated_file_handle });
+const pdf2 = await client.pdf.validate({ unvalidated_file_handle: uploadedPdf2.unvalidated_file_handle });
 
-// Manage workspaces
-const workspaces = await server.workspace.list();
-
-// Create webview tokens for secure client access
-const webviewToken = await server.webview.createToken({
-  workspace_id: "ws_xxx",
-});
-```
-
-## Features
-
-### PDF Operations
-
-```typescript
-// Validate PDF (virus scan + encoding check)
-await client.pdf.validate({ unvalidated_file_handle });
-
-// Merge/split PDFs by selecting specific pages
-await client.pdf.compose({
+// Merge PDFs
+const composed = await client.pdf.compose({
   pdfs: [
     { pdf_handle: pdf1, pages: [{ page_number: 0 }, { page_number: 2 }] },
     { pdf_handle: pdf2 }, // all pages
   ],
 });
 
-// Optimize PDF (reduce file size)
-await client.pdf.optimize({
-  pdf_handle,
-  image_dpi: 150,
-  image_quality: 70,
-});
-
-// Rotate pages
-await client.pdf.rotate({
-  pdf_handle,
-  rotate: [
-    [0, 90], // rotate page 0 by 90°
-    [2, 180], // rotate page 2 by 180°
-  ],
-});
-
-// Convert PDF pages to images
-await client.pdf.toImg({ pdf_handle, dpi: 200 });
-
-// Auto-detect and fix page orientation
-await client.pdf.orientation({ pdf_handle });
-
-// OCR - create searchable PDF with text layer
-await client.pdf.ocrToPdf({ pdf_handle });
+// Download merged PDF
+const mergedPdf = await client.data.downloadPdf({ pdf_handle: composed.pdf_handle });
 ```
 
-### Image Operations
+### Low-Level Image Processing
+
+For fine-grained control (instead of `flow.ocrImg`):
 
 ```typescript
-// Validate image
-await client.img.validate({ unvalidated_file_handle });
-
-// Create thumbnails
-await client.img.thumbnail({ img_handle, max_width: 200, max_height: 200 });
-
-// Find documents in a photo (for scanning)
-await client.img.findDocuments({ img_handle });
-
-// Extract and correct perspective
-await client.img.extractQuadrilateral({ img_handle, quadrilateral });
-
-// Detect and fix orientation
-await client.img.orientation({ img_handle });
-
-// Rotate image
-await client.img.rotate({ img_handle, angle: 90 });
-
-// Convert formats
-await client.img.toJpeg({ img_handle, quality: 85 });
-await client.img.toPng({ img_handle });
-await client.img.toPdf({ img_handle });
-
-// OCR - create searchable PDF from image
-await client.img.ocrToPdf({ img_handle });
-```
-
-### HTML Operations
-
-```typescript
-// Validate HTML
-await client.html.validate({ unvalidated_file_handle });
-
-// Convert HTML to PDF
-await client.html.toPdf({ html_handle });
-```
-
-### Email Operations
-
-```typescript
-// Parse and validate email files (.eml)
-const result = await client.email.validate({ unvalidated_file_handle });
-
-if (result.response.class_name === "EmailValidateResponseOk") {
-  const email = result.response.email_handle;
-  console.log(email.subject);
-  console.log(email.from_addr);
-  console.log(email.attachments);
-}
-```
-
-### File Upload & Download
-
-```typescript
-// Upload with progress tracking
-const uploaded = await client.data.upload(file, (percent) => {
-  console.log(`${percent.toFixed(1)}%`);
-});
-
-// Determine MIME type
-const mimeType = await client.data.mimeType({
+// Upload and validate
+const uploaded = await client.data.upload(imageFile);
+const validated = await client.img.validate({
   unvalidated_file_handle: uploaded.unvalidated_file_handle,
 });
+if (validated.response.class_name !== "ImgValidateResponseOk") {
+  throw new Error("Validation failed");
+}
+const imgHandle = validated.response.img_handle;
 
-// Download processed files
-const pdfBlob = await client.data.downloadPdf({ pdf_handle });
-const jpegBlob = await client.data.downloadJpeg({ jpeg_handle });
-const pngBlob = await client.data.downloadPng({ png_handle });
-```
-
-## Error Handling
-
-```typescript
-import { ApiErrorException, ApiErrorType } from "@maramia/maradocs-sdk-ts";
-
-try {
-  await client.pdf.validate({ unvalidated_file_handle });
-} catch (error) {
-  if (error instanceof ApiErrorException) {
-    switch (error.type) {
-      case ApiErrorType.Unauthorized:
-        console.error("Invalid API key");
-        break;
-      case ApiErrorType.RateLimited:
-        console.error("Rate limit exceeded");
-        break;
-      default:
-        console.error(error.message);
-    }
-  }
+// Find and extract document
+const docs = await client.img.findDocuments({ img_handle: imgHandle });
+if (docs.documents.length > 0) {
+  const extracted = await client.img.extractQuadrilateral({
+    img_handle: imgHandle,
+    quadrilateral: docs.documents[0].quadrilateral,
+  });
+  // Continue with extracted.img_handle...
 }
 ```
-
-## Workspace Info
-
-Access workspace information decoded from your publishable key:
-
-```typescript
-const client = new MaraDocsClient({ publishableKey });
-
-console.log(client.info.workspace_id);
-console.log(client.info.account_id);
-```
-
-## Requirements
-
-- Node.js 18+ or modern browser
-- TypeScript 5.0+ (for TypeScript projects)
-
-## Documentation
-
-For complete API documentation and guides, visit [appimaradocs.io/docs](https://api.maradocs.io/docs).
-
-## License
-
-MIT License - see [LICENSE.md](./LICENSE.md) for details.

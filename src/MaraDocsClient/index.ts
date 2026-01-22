@@ -5,6 +5,7 @@ import { PdfEp } from "./pdfEp";
 import { HtmlEp } from "./htmlEp";
 import { EmailEp } from "./emailEp";
 import { DataEp } from "./dataEp";
+import { Flow } from "./flow";
 import { FetchWrapper } from "../shared/fetchWrapper";
 import { decodeWorkspaceInfo, parseEncryptionKey } from "../shared/decodeToken";
 
@@ -15,6 +16,7 @@ export class MaraDocsClient {
     html: HtmlEp;
     email: EmailEp;
     data: DataEp;
+    flow: Flow;
     info: WorkspaceInfo;
     /**
      * @param publishableKey - The publishable key for the MaraDocs client
@@ -30,6 +32,7 @@ export class MaraDocsClient {
         this.html = new HtmlEp(wrap);
         this.email = new EmailEp(wrap);
         this.data = new DataEp(wrap, this.info.encryption_key);
+        this.flow = new Flow(this.data, this.img, this.pdf);
     }
 }
 
