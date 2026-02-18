@@ -2,32 +2,12 @@ import * as data from "../models/data";
 import { HttpErrorResponseSchema, ApiErrorException } from "../models/errors";
 import { TaskCreatedResponseSchema } from "../models/misc";
 import { FetchWrapper } from "../shared/fetchWrapper";
-import { md5 } from "js-md5";
-
-/**
- * Compute SSE-C headers for S3 requests.
- */
-function computeSseCHeaders(
-  encryption_key: Uint8Array,
-): Record<string, string> {
-  const keyB64 = btoa(String.fromCharCode(...encryption_key));
-  const keyMd5 = md5.arrayBuffer(encryption_key);
-  const md5B64 = btoa(String.fromCharCode(...new Uint8Array(keyMd5)));
-
-  return {
-    "x-amz-server-side-encryption-customer-algorithm": "AES256",
-    "x-amz-server-side-encryption-customer-key": keyB64,
-    "x-amz-server-side-encryption-customer-key-md5": md5B64,
-  };
-}
 
 export class DataEp {
   private wrap: FetchWrapper;
-  private sseHeaders: Record<string, string>;
 
-  constructor(wrap: FetchWrapper, encryption_key: Uint8Array) {
+  constructor(wrap: FetchWrapper) {
     this.wrap = wrap;
-    this.sseHeaders = computeSseCHeaders(encryption_key);
   }
 
   /**
@@ -159,57 +139,138 @@ export class DataEp {
     );
   }
 
-  public async downloadPdf(req: data.DataDownloadPdfRequest): Promise<Blob> {
+  public async downloadPdf(
+    req: data.DataDownloadPdfRequest,
+    on_progress: (percent: number) => void = () => {},
+  ): Promise<Blob> {
     const response = await this.wrap.post(
       "/data/download/pdf",
       req,
       data.DataDownloadPdfResponseSchema,
     );
-    const bytes = await this.downloadBinary(response.url);
+    const bytes = await this.downloadBinary(
+      response.url,
+      response.headers,
+      on_progress,
+    );
     return new Blob([bytes], { type: "application/pdf" });
   }
 
-  public async downloadJpeg(req: data.DataDownloadJpegRequest): Promise<Blob> {
+  public async downloadJpeg(
+    req: data.DataDownloadJpegRequest,
+    on_progress: (percent: number) => void = () => {},
+  ): Promise<Blob> {
     const response = await this.wrap.post(
       "/data/download/jpeg",
       req,
       data.DataDownloadJpegResponseSchema,
     );
-    const bytes = await this.downloadBinary(response.url);
+    const bytes = await this.downloadBinary(
+      response.url,
+      response.headers,
+      on_progress,
+    );
     return new Blob([bytes], { type: "image/jpeg" });
   }
 
-  public async downloadPng(req: data.DataDownloadPngRequest): Promise<Blob> {
+  public async downloadPng(
+    req: data.DataDownloadPngRequest,
+    on_progress: (percent: number) => void = () => {},
+  ): Promise<Blob> {
     const response = await this.wrap.post(
       "/data/download/png",
       req,
       data.DataDownloadPngResponseSchema,
     );
-    const bytes = await this.downloadBinary(response.url);
+    const bytes = await this.downloadBinary(
+      response.url,
+      response.headers,
+      on_progress,
+    );
     return new Blob([bytes], { type: "image/png" });
   }
 
-  public async downloadOdt(req: data.DataDownloadOdtRequest): Promise<Blob> {
+  public async downloadOdt(
+    req: data.DataDownloadOdtRequest,
+    on_progress: (percent: number) => void = () => {},
+  ): Promise<Blob> {
     const response = await this.wrap.post(
       "/data/download/odt",
       req,
       data.DataDownloadOdtResponseSchema,
     );
-    const bytes = await this.downloadBinary(response.url);
+    const bytes = await this.downloadBinary(
+      response.url,
+      response.headers,
+      on_progress,
+    );
     return new Blob([bytes], {
       type: "application/vnd.oasis.opendocument.text",
     });
   }
 
-  private async downloadBinary(url: string): Promise<ArrayBuffer> {
-    let res = await fetch(url, {
-      method: "GET",
-      headers: this.sseHeaders,
-    });
-    if (res.status === 200) {
-      return await res.arrayBuffer();
-    } else {
-      throw new Error(`HTTP error! status: ${res.status} ${res.statusText}`);
+  /**
+   * Downloads an unvalidated file.
+   * Useful for downloading email body content (text_body, html_body).
+   */
+  public async downloadUnvalidated(
+    req: data.DataDownloadUnvalidatedRequest,
+    on_progress: (percent: number) => void = () => {},
+  ): Promise<Blob> {
+    const response = await this.wrap.post(
+      "/data/download/unvalidated",
+      req,
+      data.DataDownloadUnvalidatedResponseSchema,
+    );
+    const bytes = await this.downloadBinary(
+      response.url,
+      response.headers,
+      on_progress,
+    );
+    return new Blob([bytes]);
+  }
+
+  private async downloadBinary(
+    url: string,
+    headers: Record<string, string>,
+    on_progress: (percent: number) => void,
+  ): Promise<ArrayBuffer> {
+    const response = await fetch(url, { method: "GET", headers });
+
+    if (!response.ok) {
+      throw new Error(`Download failed: ${response.status}`);
     }
+
+    // Get total size from Content-Length header
+    const contentLength = response.headers.get("Content-Length");
+    const total = contentLength ? parseInt(contentLength, 10) : null;
+
+    if (!total || !response.body) {
+      // Fallback: can't track progress, just download
+      return response.arrayBuffer();
+    }
+
+    const reader = response.body.getReader();
+    const chunks: Uint8Array[] = [];
+    let loaded = 0;
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      chunks.push(value);
+      loaded += value.length;
+      on_progress((loaded / total) * 100);
+    }
+
+    // Combine chunks into single ArrayBuffer
+    const result = new Uint8Array(loaded);
+    let offset = 0;
+    for (const chunk of chunks) {
+      result.set(chunk, offset);
+      offset += chunk.length;
+    }
+
+    return result.buffer;
   }
 }

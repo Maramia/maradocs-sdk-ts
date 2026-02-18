@@ -3,8 +3,26 @@
  * @module data
  */
 import { z } from "zod/v4";
-import { PdfHandleSchema, JpegHandleSchema, PngHandleSchema, ConfidenceSchema, UnvalidatedFileHandleSchema, OdtHandleSchema } from "./misc";
+import {
+  PdfHandleSchema,
+  JpegHandleSchema,
+  PngHandleSchema,
+  ConfidenceSchema,
+  UnvalidatedFileHandleSchema,
+  OdtHandleSchema,
+  Str255Schema,
+} from "./misc";
 
+const DEFAULT_EXPIRATION_TIME = 60 * 5; //  5 minutes
+const MAX_EXPIRATION_TIME = 60 * 60 * 24 * 7; // 7 days
+const ExpirationTimeSchema = z
+  .number()
+  .int()
+  .positive()
+  .max(MAX_EXPIRATION_TIME)
+  .default(DEFAULT_EXPIRATION_TIME)
+  .optional()
+  .describe("Number of seconds until the download URL expires");
 // ============================================================================
 // Upload
 // ============================================================================
@@ -12,19 +30,28 @@ import { PdfHandleSchema, JpegHandleSchema, PngHandleSchema, ConfidenceSchema, U
 /**
  * Request to upload a file to the workspace
  */
-export const DataUploadRequestSchema = z.object({
+export const DataUploadRequestSchema = z
+  .object({
+    name: Str255Schema.optional().describe("Name of the file"),
     size: z.number().int().positive().describe("Size of the file in bytes"),
-}).describe("File upload request");
+  })
+  .describe("File upload request");
 export type DataUploadRequest = z.infer<typeof DataUploadRequestSchema>;
 
 /**
  * Response to a file upload request containing presigned URL and headers
  */
-export const DataUploadResponseSchema = z.object({
+export const DataUploadResponseSchema = z
+  .object({
     post_url: z.string().describe("Presigned POST URL for file upload"),
-    post_header: z.record(z.string(), z.string()).describe("Headers to include in the POST request"),
-    unvalidated_file_handle: UnvalidatedFileHandleSchema.describe("Handle to the uploaded file"),
-}).describe("File upload response");
+    post_header: z
+      .record(z.string(), z.string())
+      .describe("Headers to include in the POST request"),
+    unvalidated_file_handle: UnvalidatedFileHandleSchema.describe(
+      "Handle to the uploaded file",
+    ),
+  })
+  .describe("File upload response");
 export type DataUploadResponse = z.infer<typeof DataUploadResponseSchema>;
 
 // ============================================================================
@@ -34,18 +61,30 @@ export type DataUploadResponse = z.infer<typeof DataUploadResponseSchema>;
 /**
  * Request to download a PDF file from the workspace
  */
-export const DataDownloadPdfRequestSchema = z.object({
+export const DataDownloadPdfRequestSchema = z
+  .object({
     pdf_handle: PdfHandleSchema.describe("Handle to the PDF file to download"),
-}).describe("PDF download request");
-export type DataDownloadPdfRequest = z.infer<typeof DataDownloadPdfRequestSchema>;
+    expires_in: ExpirationTimeSchema,
+  })
+  .describe("PDF download request");
+export type DataDownloadPdfRequest = z.infer<
+  typeof DataDownloadPdfRequestSchema
+>;
 
 /**
  * Response to a PDF download request
  */
-export const DataDownloadPdfResponseSchema = z.object({
+export const DataDownloadPdfResponseSchema = z
+  .object({
     url: z.url().describe("Presigned GET URL to download the PDF"),
-}).describe("PDF download response");
-export type DataDownloadPdfResponse = z.infer<typeof DataDownloadPdfResponseSchema>;
+    headers: z
+      .record(z.string(), z.string())
+      .describe("SSE-C headers to include in the GET request"),
+  })
+  .describe("PDF download response");
+export type DataDownloadPdfResponse = z.infer<
+  typeof DataDownloadPdfResponseSchema
+>;
 
 // ============================================================================
 // Download - JPEG
@@ -54,18 +93,32 @@ export type DataDownloadPdfResponse = z.infer<typeof DataDownloadPdfResponseSche
 /**
  * Request to download a JPEG file from the workspace
  */
-export const DataDownloadJpegRequestSchema = z.object({
-    jpeg_handle: JpegHandleSchema.describe("Handle to the JPEG file to download"),
-}).describe("JPEG download request");
-export type DataDownloadJpegRequest = z.infer<typeof DataDownloadJpegRequestSchema>;
+export const DataDownloadJpegRequestSchema = z
+  .object({
+    jpeg_handle: JpegHandleSchema.describe(
+      "Handle to the JPEG file to download",
+    ),
+    expires_in: ExpirationTimeSchema,
+  })
+  .describe("JPEG download request");
+export type DataDownloadJpegRequest = z.infer<
+  typeof DataDownloadJpegRequestSchema
+>;
 
 /**
  * Response to a JPEG download request
  */
-export const DataDownloadJpegResponseSchema = z.object({
+export const DataDownloadJpegResponseSchema = z
+  .object({
     url: z.url().describe("Presigned GET URL to download the JPEG"),
-}).describe("JPEG download response");
-export type DataDownloadJpegResponse = z.infer<typeof DataDownloadJpegResponseSchema>;
+    headers: z
+      .record(z.string(), z.string())
+      .describe("SSE-C headers to include in the GET request"),
+  })
+  .describe("JPEG download response");
+export type DataDownloadJpegResponse = z.infer<
+  typeof DataDownloadJpegResponseSchema
+>;
 
 // ============================================================================
 // Download - PNG
@@ -74,18 +127,30 @@ export type DataDownloadJpegResponse = z.infer<typeof DataDownloadJpegResponseSc
 /**
  * Request to download a PNG file from the workspace
  */
-export const DataDownloadPngRequestSchema = z.object({
+export const DataDownloadPngRequestSchema = z
+  .object({
     png_handle: PngHandleSchema.describe("Handle to the PNG file to download"),
-}).describe("PNG download request");
-export type DataDownloadPngRequest = z.infer<typeof DataDownloadPngRequestSchema>;
+    expires_in: ExpirationTimeSchema,
+  })
+  .describe("PNG download request");
+export type DataDownloadPngRequest = z.infer<
+  typeof DataDownloadPngRequestSchema
+>;
 
 /**
  * Response to a PNG download request
  */
-export const DataDownloadPngResponseSchema = z.object({
+export const DataDownloadPngResponseSchema = z
+  .object({
     url: z.url().describe("Presigned GET URL to download the PNG"),
-}).describe("PNG download response");
-export type DataDownloadPngResponse = z.infer<typeof DataDownloadPngResponseSchema>;
+    headers: z
+      .record(z.string(), z.string())
+      .describe("SSE-C headers to include in the GET request"),
+  })
+  .describe("PNG download response");
+export type DataDownloadPngResponse = z.infer<
+  typeof DataDownloadPngResponseSchema
+>;
 
 // ============================================================================
 // Download - ODT
@@ -94,18 +159,30 @@ export type DataDownloadPngResponse = z.infer<typeof DataDownloadPngResponseSche
 /**
  * Request to download an ODT file from the workspace
  */
-export const DataDownloadOdtRequestSchema = z.object({
+export const DataDownloadOdtRequestSchema = z
+  .object({
     odt_handle: OdtHandleSchema.describe("Handle to the ODT file to download"),
-}).describe("ODT download request");
-export type DataDownloadOdtRequest = z.infer<typeof DataDownloadOdtRequestSchema>;
+    expires_in: ExpirationTimeSchema,
+  })
+  .describe("ODT download request");
+export type DataDownloadOdtRequest = z.infer<
+  typeof DataDownloadOdtRequestSchema
+>;
 
 /**
  * Response to an ODT download request
  */
-export const DataDownloadOdtResponseSchema = z.object({
+export const DataDownloadOdtResponseSchema = z
+  .object({
     url: z.url().describe("Presigned GET URL to download the ODT"),
-}).describe("ODT download response");
-export type DataDownloadOdtResponse = z.infer<typeof DataDownloadOdtResponseSchema>;
+    headers: z
+      .record(z.string(), z.string())
+      .describe("SSE-C headers to include in the GET request"),
+  })
+  .describe("ODT download response");
+export type DataDownloadOdtResponse = z.infer<
+  typeof DataDownloadOdtResponseSchema
+>;
 
 // ============================================================================
 // Download - Unvalidated
@@ -114,18 +191,32 @@ export type DataDownloadOdtResponse = z.infer<typeof DataDownloadOdtResponseSche
 /**
  * Request to download a binary file that has not been validated yet
  */
-export const DataDownloadUnvalidatedRequestSchema = z.object({
-    unvalidated_file_handle: UnvalidatedFileHandleSchema.describe("Handle to the unvalidated file"),
-}).describe("Unvalidated file download request");
-export type DataDownloadUnvalidatedRequest = z.infer<typeof DataDownloadUnvalidatedRequestSchema>;
+export const DataDownloadUnvalidatedRequestSchema = z
+  .object({
+    unvalidated_file_handle: UnvalidatedFileHandleSchema.describe(
+      "Handle to the unvalidated file",
+    ),
+    expires_in: ExpirationTimeSchema,
+  })
+  .describe("Unvalidated file download request");
+export type DataDownloadUnvalidatedRequest = z.infer<
+  typeof DataDownloadUnvalidatedRequestSchema
+>;
 
 /**
  * Response to an unvalidated file download request
  */
-export const DataDownloadUnvalidatedResponseSchema = z.object({
+export const DataDownloadUnvalidatedResponseSchema = z
+  .object({
     url: z.url().describe("Presigned GET URL to download the file"),
-}).describe("Unvalidated file download response");
-export type DataDownloadUnvalidatedResponse = z.infer<typeof DataDownloadUnvalidatedResponseSchema>;
+    headers: z
+      .record(z.string(), z.string())
+      .describe("SSE-C headers to include in the GET request"),
+  })
+  .describe("Unvalidated file download response");
+export type DataDownloadUnvalidatedResponse = z.infer<
+  typeof DataDownloadUnvalidatedResponseSchema
+>;
 
 // ============================================================================
 // Media Type Detection
@@ -134,16 +225,22 @@ export type DataDownloadUnvalidatedResponse = z.infer<typeof DataDownloadUnvalid
 /**
  * Request to determine the media type (MIME) of a file
  */
-export const DataMediaTypeRequestSchema = z.object({
+export const DataMediaTypeRequestSchema = z
+  .object({
     unvalidated_file_handle: UnvalidatedFileHandleSchema,
-}).describe("Media type detection request");
+  })
+  .describe("Media type detection request");
 export type DataMediaTypeRequest = z.infer<typeof DataMediaTypeRequestSchema>;
 
 /**
  * Response containing the detected media type and confidence
  */
-export const DataMediaTypeResponseSchema = z.object({
+export const DataMediaTypeResponseSchema = z
+  .object({
     media_type: z.string().describe("Detected media type (MIME) of the file"),
-    confidence: ConfidenceSchema.describe("Confidence in the detected media type"),
-}).describe("Media type detection response");
+    confidence: ConfidenceSchema.describe(
+      "Confidence in the detected media type",
+    ),
+  })
+  .describe("Media type detection response");
 export type DataMediaTypeResponse = z.infer<typeof DataMediaTypeResponseSchema>;

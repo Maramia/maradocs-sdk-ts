@@ -160,15 +160,15 @@ export const SpentCreditsSchema = z.object({
 export type SpentCredits = z.infer<typeof SpentCreditsSchema>;
 
 // ============================================================================
-// Account Secret Key
+// Account Secret
 // ============================================================================
 
 /**
- * Account secret key - can be obtained from the MaraDocs UI.
+ * Account secret - can be obtained from the MaraDocs UI.
  * Used for authentication when creating workspaces.
  */
-export const AccountSecretKeySchema = z.object({
+export const AccountSecretSchema = z.object({
     account_id: UUIDSchema.describe("ID of the account"),
     seed: Base64BytesSchema.describe("Base64-encoded secret seed"),
-}).describe("Account secret key for authentication");
-export type AccountSecretKey = z.infer<typeof AccountSecretKeySchema>;
+}).describe("Account secret for authentication");
+export type AccountSecret = z.infer<typeof AccountSecretSchema>;

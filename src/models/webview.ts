@@ -16,7 +16,7 @@ export const WebviewOpenRequestSchema = z.object({
     language: z.literal("de").default("de").describe("Language of the webview. Default: 'de'"),
     allow_user_upload: z.boolean().default(true).describe("Allow user to upload files. Default: true"),
     allow_user_download: z.boolean().default(true).describe("Allow user to download files. Default: true"),
-    with_files: z.array(FileHandleSchema).optional().nullable().describe(
+    with_files: z.array(FileHandleSchema).optional().describe(
         "Files to pre-load in the workspace. Default (null) loads all files."
     ),
 }).describe("Webview open request");

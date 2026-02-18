@@ -8,6 +8,12 @@ Official TypeScript SDK for the [MaraDocs API](https://maradocs.io) - OCR and do
 npm install @maramia/maradocs-sdk-ts
 ```
 
+or with pnpm:
+
+```bash
+pnpm add @maramia/maradocs-sdk-ts
+```
+
 ## Documentation
 
 Full API documentation: [api.maradocs.io](https://api.maradocs.io)
@@ -17,12 +23,12 @@ Full API documentation: [api.maradocs.io](https://api.maradocs.io)
 ```typescript
 import { MaraDocsServer, MaraDocsClient } from "@maramia/maradocs-sdk-ts";
 
-// Server-side: create workspace and send publishable_key to client
+// Server-side: create workspace and send workspace_secret to client
 const server = new MaraDocsServer({ secretKey: process.env.MARADOCS_SECRET_KEY! });
 const ws = await server.workspace.create({});
 
 // Client-side: OCR documents and combine into single PDF
-const client = new MaraDocsClient({ publishableKey: ws.publishable_key });
+const client = new MaraDocsClient({ workspaceSecret: ws.workspace_secret });
 const imgPdf = await client.flow.ocrImg(imageFile);   // image → searchable PDF
 const pdfPdf = await client.flow.ocrPdf(pdfFile);     // PDF → searchable PDF
 const combined = await client.pdf.compose({ pdfs: [{ pdf_handle: imgPdf }, { pdf_handle: pdfPdf }] });
@@ -33,7 +39,7 @@ const blob = await client.data.downloadPdf({ pdf_handle: combined.pdf_handle });
 
 | Client | Use Case | Authentication |
 |--------|----------|----------------|
-| `MaraDocsClient` | Client-side (browser) document processing | Publishable key |
+| `MaraDocsClient` | Client-side (browser) document processing | Workspace secret |
 | `MaraDocsServer` | Server-side workspace management | Secret key |
 
 ## Error Handling
@@ -57,7 +63,7 @@ try {
 }
 ```
 
-See [errors.ts](https://github.com/Maramia/maradocs-sdk-ts/blob/main/src/models/errors.ts) for all error codes.
+See [errors.ts](https://github.com/maramia/maradocs-sdk-typescript/blob/main/src/models/errors.ts) for all error codes.
 
 ## API Reference
 
@@ -107,31 +113,53 @@ See [errors.ts](https://github.com/Maramia/maradocs-sdk-ts/blob/main/src/models/
 | Method | Description |
 |--------|-------------|
 | `validate` | Parse and validate .eml/.msg files and extract attachments |
+| `toHtml` | Render validated email to HTML |
+| `toPdf` | Render validated email to PDF |
 
 ### Data Operations (`client.data`)
 
 | Method | Description |
 |--------|-------------|
-| `upload` | Upload file with progress tracking |
+| `upload` | Upload file (optional `on_progress` callback) |
 | `mimeType` | Detect MIME type |
-| `downloadPdf` | Download as Blob |
-| `downloadJpeg` | Download as Blob |
-| `downloadPng` | Download as Blob |
+| `downloadPdf` | Download PDF as Blob (optional `on_progress`) |
+| `downloadJpeg` | Download JPEG as Blob (optional `on_progress`) |
+| `downloadPng` | Download PNG as Blob (optional `on_progress`) |
+| `downloadOdt` | Download ODT as Blob (optional `on_progress`) |
+| `downloadUnvalidated` | Download unvalidated file, e.g. email body (optional `on_progress`) |
 
 
+
+## Validation and helpers
+
+Uploaded files must be validated before use. Validation responses are discriminated unions (`Ok`, `Error`, or `Virus`). Use the `okPdf`, `okImg`, `okHtml`, and `okEmail` helpers to extract the handle from a successful response—they throw `ValidationErrorException` or `ValidationVirusException` on failure:
+
+```typescript
+import { okPdf } from "@maramia/maradocs-sdk-ts/models/pdf";
+import { okImg } from "@maramia/maradocs-sdk-ts/models/img";
+import { okHtml } from "@maramia/maradocs-sdk-ts/models/html";
+import { okEmail } from "@maramia/maradocs-sdk-ts/models/email";
+
+const validated = await client.pdf.validate({ unvalidated_file_handle: uploaded.unvalidated_file_handle });
+const pdfHandle = okPdf(validated);  // throws if validation failed
+```
 
 ## Examples
 
 ### Merge/Split PDFs
 
 ```typescript
+import { okPdf } from "@maramia/maradocs-sdk-ts/models/pdf";
+
 // Upload PDFs
 const uploadedPdf1 = await client.data.upload(pdf1File);
 const uploadedPdf2 = await client.data.upload(pdf2File);
 
-// Validate PDFs
-const pdf1 = await client.pdf.validate({ unvalidated_file_handle: uploadedPdf1.unvalidated_file_handle });
-const pdf2 = await client.pdf.validate({ unvalidated_file_handle: uploadedPdf2.unvalidated_file_handle });
+// Validate PDFs (throws on virus or validation error)
+const validatedPdf1 = await client.pdf.validate({ unvalidated_file_handle: uploadedPdf1.unvalidated_file_handle });
+const validatedPdf2 = await client.pdf.validate({ unvalidated_file_handle: uploadedPdf2.unvalidated_file_handle });
+const pdf1 = okPdf(validatedPdf1);
+const pdf2 = okPdf(validatedPdf2);
 
 // Merge PDFs
 const composed = await client.pdf.compose({
@@ -147,7 +175,7 @@ const mergedPdf = await client.data.downloadPdf({ pdf_handle: composed.pdf_handl
 
 ### Low-Level Image Processing
 
-For fine-grained control (instead of `flow.ocrImg`):
+For fine-grained control (instead of `flow.ocrImg`) and without using the `okImg` helper
 
 ```typescript
 // Upload and validate

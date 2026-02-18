@@ -27,4 +27,40 @@ export class EmailEp {
       email.EmailValidateResponseSchema,
     );
   }
+
+  /**
+   * Renders a validated email to HTML format.
+   * Creates task and polls for result automatically.
+   */
+  public async toHtml(
+    req: email.EmailToHtmlRequest,
+  ): Promise<email.EmailToHtmlResponse> {
+    const task = await this.wrap.post(
+      "/email/to/html",
+      req,
+      TaskCreatedResponseSchema,
+    );
+    return this.wrap.pollResult(
+      `/email/to/html/${task.job_id}`,
+      email.EmailToHtmlResponseSchema,
+    );
+  }
+
+  /**
+   * Renders a validated email to PDF format.
+   * Creates task and polls for result automatically.
+   */
+  public async toPdf(
+    req: email.EmailToPdfRequest,
+  ): Promise<email.EmailToPdfResponse> {
+    const task = await this.wrap.post(
+      "/email/to/pdf",
+      req,
+      TaskCreatedResponseSchema,
+    );
+    return this.wrap.pollResult(
+      `/email/to/pdf/${task.job_id}`,
+      email.EmailToPdfResponseSchema,
+    );
+  }
 }

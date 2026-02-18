@@ -1,5 +1,6 @@
 import { PdfHandle, ImgHandle } from "../models/misc";
-import { ImgToPdfOptions } from "../models/img";
+import { ImgToPdfOptions, okImg } from "../models/img";
+import { okPdf } from "../models/pdf";
 import { DataEp } from "./dataEp";
 import { ImgEp } from "./imgEp";
 import { PdfEp } from "./pdfEp";
@@ -81,9 +82,7 @@ export class Flow {
    * 3. Find documents in image (optional)
    * 4. Extract document with perspective correction (if found)
    * 5. Convert images to PDFs
-   * 6. Detect and fix orientation
-   * 7. OCR to searchable PDF
-   * 8. Optimize to reduce file size
+   * 6. Compose, orient, and OCR
    *
    * @param input - Image data (File, Blob, ArrayBuffer, or Buffer)
    * @param options - Processing options
@@ -93,7 +92,7 @@ export class Flow {
     input: FlowInput,
     options: OcrImgOptions = {},
   ): Promise<PdfHandle> {
-    const { extractDocument = true, onProgress, pdfOptions } = options;
+    const { onProgress } = options;
 
     // 1. Upload
     const file = this.toFile(input, "image.jpg", "image/jpeg");
@@ -103,27 +102,44 @@ export class Flow {
     const validated = await this.img.validate({
       unvalidated_file_handle: uploaded.unvalidated_file_handle,
     });
-    if (validated.response.class_name !== "ImgValidateResponseOk") {
-      throw new Error(
-        `Image validation failed: ${validated.response.class_name === "ImgValidateResponseError" ? validated.response.error : "virus detected"}`,
-      );
-    }
-    let imgHandle: ImgHandle = validated.response.img_handle;
+    let imgHandle: ImgHandle = okImg(validated);
+
+    return this.ocrImgHandle(imgHandle, options);
+  }
+
+  /**
+   * OCR an image to a searchable PDF.
+   *
+   * Pipeline:
+   * 1. Find documents in image (optional)
+   * 2. Extract document with perspective correction (if found)
+   * 3. Convert images to PDFs
+   * 4. Compose, orient, and OCR
+   *
+   * @param imgHandle - Image handle
+   * @param options - Processing options
+   * @returns Handle to the OCR'd PDF
+   */
+  public async ocrImgHandle(
+    imgHandle: ImgHandle,
+    options: OcrImgOptions = {},
+  ): Promise<PdfHandle> {
+    const { extractDocument = true, pdfOptions } = options;
 
     let imgHandles: ImgHandle[] = [];
-    
+
     // 3. & 4. Find and extract documents (optional)
     if (extractDocument) {
       const docs = await this.img.findDocuments({ img_handle: imgHandle });
-        for (const doc of docs.documents) {
-          const extracted = await this.img.extractQuadrilateral({
-            img_handle: imgHandle,
-            quadrilateral: doc.quadrilateral,
-          });
-          imgHandles.push(extracted.img_handle);
-        }
+      for (const doc of docs.documents) {
+        const extracted = await this.img.extractQuadrilateral({
+          img_handle: imgHandle,
+          quadrilateral: doc.quadrilateral,
+        });
+        imgHandles.push(extracted.img_handle);
+      }
     }
-    
+
     // No documents found or extraction disabled: process original image
     if (imgHandles.length == 0) {
       imgHandles.push(imgHandle);
@@ -132,22 +148,28 @@ export class Flow {
     // Convert images to PDFs
     let pdfHandles: PdfHandle[] = [];
     for (const imgHandle of imgHandles) {
-      const pdfHandle = await this.img.toPdf({ img_handle: imgHandle , options: pdfOptions});
+      const pdfHandle = await this.img.ocrToPdf({
+        img_handle: imgHandle,
+        options: pdfOptions,
+      });
       pdfHandles.push(pdfHandle.pdf_handle);
     }
     let combinedPdf = await this.pdf.compose({
-      pdfs: pdfHandles.map(pdf_handle => ({ pdf_handle })),
+      pdfs: pdfHandles.map((pdf_handle) => ({ pdf_handle })),
     });
-    
+
     // 5. Detect and fix orientation
-    let orientedPdf = (await this.pdf.orientation({ pdf_handle: combinedPdf.pdf_handle })).rotated_pdf_handle;
+    let orientedPdf = (
+      await this.pdf.orientation({ pdf_handle: combinedPdf.pdf_handle })
+    ).rotated_pdf_handle;
 
     // 6. OCR to PDF
     let ocrPdf = await this.pdf.ocrToPdf({ pdf_handle: orientedPdf });
-    let optimizedPdf = await this.pdf.optimize({ pdf_handle: ocrPdf.pdf_handle });
+    let optimizedPdf = await this.pdf.optimize({
+      pdf_handle: ocrPdf.pdf_handle,
+    });
 
     return optimizedPdf.pdf_handle;
-
   }
 
   /**
@@ -158,7 +180,7 @@ export class Flow {
    * 2. Validate PDF
    * 3. Detect and fix page orientation
    * 4. OCR to searchable PDF
-   * 5. Optimize to reduce file size (optional)
+   * 5. Optimize to reduce file size
    *
    * @param input - PDF data (File, Blob, ArrayBuffer, or Buffer)
    * @param options - Processing options
@@ -179,13 +201,27 @@ export class Flow {
       unvalidated_file_handle: uploaded.unvalidated_file_handle,
       password,
     });
-    if (validated.response.class_name !== "PdfValidateResponseOk") {
-      throw new Error(
-        `PDF validation failed: ${validated.response.class_name === "PdfValidateResponseError" ? validated.response.error : "virus detected"}`,
-      );
-    }
-    let pdfHandle: PdfHandle = validated.response.pdf_handle;
+    let pdfHandle: PdfHandle = okPdf(validated);
 
+    return this.ocrPdfHandle(pdfHandle, options);
+  }
+
+  /**
+   * OCR a PDF to make it searchable, with orientation correction and optimization.
+   *
+   * Pipeline:
+   * 1. Detect and fix page orientation
+   * 2. OCR to searchable PDF
+   * 3. Optimize to reduce file size
+   *
+   * @param pdfHandle - PDF handle
+   * @param options - Processing options
+   * @returns Handle to the OCR'd and optimized PDF
+   */
+  public async ocrPdfHandle(
+    pdfHandle: PdfHandle,
+    _options: OcrPdfOptions = {},
+  ): Promise<PdfHandle> {
     // 3. Orientation detection and correction
     const oriented = await this.pdf.orientation({ pdf_handle: pdfHandle });
     pdfHandle = oriented.rotated_pdf_handle;

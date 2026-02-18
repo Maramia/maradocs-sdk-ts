@@ -22,7 +22,7 @@ export type WorkspaceCreateRequest = z.infer<typeof WorkspaceCreateRequestSchema
 export const WorkspaceCreateResponseSchema = z.object({
     subaccount: z.guid().nullable().describe("Subaccount that will be charged (null if none)"),
     workspace_id: z.guid().describe("Unique identifier for the created workspace"),
-    publishable_key: z.base64().describe("Base64-encoded publishable key (JWT) for the workspace"),
+    workspace_secret: z.base64().describe("Base64-encoded workspace secret (JWT) for the workspace"),
 }).describe("Workspace creation response");
 export type WorkspaceCreateResponse = z.infer<typeof WorkspaceCreateResponseSchema>;
 

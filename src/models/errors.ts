@@ -27,21 +27,25 @@ export enum ApiErrorType {
 /**
  * API Error structure returned by the backend
  */
-export const ApiErrorSchema = z.object({
-  code: z.number().int().describe("Error code from ApiErrorType"),
-  name: z.string().describe("Error name/identifier"),
-  message: z.string().describe("Human-readable error message"),
-}).describe("API error details");
+export const ApiErrorSchema = z
+  .object({
+    code: z.number().int().describe("Error code from ApiErrorType"),
+    name: z.string().describe("Error name/identifier"),
+    message: z.string().describe("Human-readable error message"),
+  })
+  .describe("API error details");
 
 export type ApiError = z.infer<typeof ApiErrorSchema>;
 
 /**
  * HTTP Error response from API - wraps ApiError with HTTP status code
  */
-export const HttpErrorResponseSchema = z.object({
-  status_code: z.number().int().describe("HTTP status code"),
-  api_error: ApiErrorSchema,
-}).describe("HTTP error response");
+export const HttpErrorResponseSchema = z
+  .object({
+    status_code: z.number().int().describe("HTTP status code"),
+    api_error: ApiErrorSchema,
+  })
+  .describe("HTTP error response");
 
 export type HttpErrorResponse = z.infer<typeof HttpErrorResponseSchema>;
 
@@ -64,5 +68,27 @@ export class ApiErrorException extends Error {
    */
   static fromHttpResponse(response: HttpErrorResponse): ApiErrorException {
     return new ApiErrorException(response.status_code, response.api_error);
+  }
+}
+
+/**
+ * Exception thrown when validation fails due to an error (e.g., decoding error, invalid format)
+ */
+export class ValidationErrorException extends Error {
+  constructor(public error: string) {
+    super(`Validation failed: ${error}`);
+    this.name = "ValidationErrorException";
+    Object.setPrototypeOf(this, ValidationErrorException.prototype);
+  }
+}
+
+/**
+ * Exception thrown when validation fails due to virus detection
+ */
+export class ValidationVirusException extends Error {
+  constructor(public virus: string) {
+    super(`Virus detected: ${virus}`);
+    this.name = "ValidationVirusException";
+    Object.setPrototypeOf(this, ValidationVirusException.prototype);
   }
 }

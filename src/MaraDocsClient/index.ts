@@ -19,19 +19,19 @@ export class MaraDocsClient {
     flow: Flow;
     info: WorkspaceInfo;
     /**
-     * @param publishableKey - The publishable key for the MaraDocs client
+     * @param workspaceSecret - The workspace secret for the MaraDocs client
      * @param apiUrlWithVersion - The API URL with version. If not provided, the default API URL will be used.
      */
-    constructor({ publishableKey, apiUrlWithVersion }: { publishableKey: string; apiUrlWithVersion?: string }) {
+    constructor({ workspaceSecret, apiUrlWithVersion }: { workspaceSecret: string; apiUrlWithVersion?: string }) {
         apiUrlWithVersion = apiUrlWithVersion ?? API_URL_V1;
-        let wrap = new FetchWrapper({ jwt: publishableKey, apiUrlWithVersion });
+        let wrap = new FetchWrapper({ jwt: workspaceSecret, apiUrlWithVersion });
         this.healthcheck = new HealthcheckEp(wrap);
-        this.info = new WorkspaceInfo(publishableKey);
+        this.info = new WorkspaceInfo(workspaceSecret);
         this.img = new ImgEp(wrap);
         this.pdf = new PdfEp(wrap);
         this.html = new HtmlEp(wrap);
         this.email = new EmailEp(wrap);
-        this.data = new DataEp(wrap, this.info.encryption_key);
+        this.data = new DataEp(wrap);
         this.flow = new Flow(this.data, this.img, this.pdf);
     }
 }

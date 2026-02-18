@@ -180,12 +180,12 @@ export class ImgEp {
     req: img.ImgOcrToPdfRequest,
   ): Promise<img.ImgOcrToPdfResponse> {
     const task = await this.wrap.post(
-      "/img/ocr/pdf",
+      "/img/ocr/to/pdf",
       req,
       TaskCreatedResponseSchema,
     );
     return this.wrap.pollResult(
-      `/img/ocr/pdf/${task.job_id}`,
+      `/img/ocr/to/pdf/${task.job_id}`,
       img.ImgOcrToPdfResponseSchema,
     );
   }
