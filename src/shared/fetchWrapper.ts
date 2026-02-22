@@ -108,7 +108,7 @@ export class FetchWrapper {
     path: string,
     schema: z.ZodType<Out>,
   ): Promise<Out> {
-    let retry_count = 0;
+    let retryCount = 0;
     while (true) {
       const requestInit: RequestInit = {
         method: "GET",
@@ -130,8 +130,8 @@ export class FetchWrapper {
       } else if (res.status === 202) {
         // 202 means the task is still processing (waited 10s on server)
         // Retry immediately - the server already waited
-        retry_count++;
-        if (retry_count > MAX_RETRIES) {
+        retryCount++;
+        if (retryCount > MAX_RETRIES) {
           throw new Error("Failed processing the request in a reasonable time");
         }
         continue;

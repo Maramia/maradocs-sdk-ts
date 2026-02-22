@@ -11,7 +11,13 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 -->
 
-## [1.1.0] - 2025-02-18
+## [1.2.0] - 2026-02-22
+
+### Changed
+- **Breaking**: `ApiErrorException` properties renamed: `status_code` → `statusCode`, `api_error` → `apiError`
+- **Breaking**: `DataEp` callback parameter renamed: `on_progress` → `onProgress` in `upload`, `downloadPdf`, `downloadJpeg`, `downloadPng`, `downloadOdt`, `downloadUnvalidated`
+
+## [1.1.0] - 2026-02-18
 
 ### Added
 - Progress tracking for download methods (`downloadPdf`, `downloadJpeg`, `downloadPng`, `downloadOdt`, `downloadUnvalidated`) via optional `on_progress` callback

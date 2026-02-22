@@ -17,6 +17,6 @@ export function decodeWorkspaceInfo(token: string): WorkspaceInfo {
     return WorkspaceInfoSchema.parse(JSON.parse(payload.toString("utf-8")));
 }
 
-export function parseEncryptionKey(workspace_info: WorkspaceInfo): Uint8Array {
-    return new Uint8Array(Buffer.from(workspace_info.encryption_key, "base64"));
+export function parseEncryptionKey(workspaceInfo: WorkspaceInfo): Uint8Array {
+    return new Uint8Array(Buffer.from(workspaceInfo.encryption_key, "base64"));
 }

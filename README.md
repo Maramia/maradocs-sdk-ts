@@ -1,6 +1,10 @@
 # MaraDocs TypeScript SDK
+MaraDocs.io is a comprehensive document preparation tool that easily extracts documents from images typically sent by email.
+It transforms trashy photos into nice and usable pdfs and delivers virus checks, pdf conversion, ai text recognition and pdf compression along the way.
+Check out MaraDocs at https://maradocs.io.
 
-Official TypeScript SDK for the [MaraDocs API](https://maradocs.io) - OCR and document processing for PDFs, images, emails, and HTML.
+The MaraDocs API is the interface to use all of MaraDocs magic document functions in your own automation tools.
+This is the Official TypeScript SDK for the [MaraDocs API](https://api.maradocs.io).
 
 ## Installation
 
@@ -57,8 +61,8 @@ try {
   await client.pdf.compose({ pdfs: [{ pdf_handle: pdf, pages: [{ page_number: 999 }] }] });
 } catch (e) {
   if (e instanceof ApiErrorException) {
-    console.log(e.api_error.code);    // e.g. 300 (PDF_PAGE_OUT_OF_RANGE)
-    console.log(e.api_error.message); // human-readable explanation
+    console.log(e.apiError.code);    // e.g. 300 (PDF_PAGE_OUT_OF_RANGE)
+    console.log(e.apiError.message); // human-readable explanation
   }
 }
 ```
@@ -120,13 +124,13 @@ See [errors.ts](https://github.com/maramia/maradocs-sdk-typescript/blob/main/src
 
 | Method | Description |
 |--------|-------------|
-| `upload` | Upload file (optional `on_progress` callback) |
+| `upload` | Upload file (optional `onProgress` callback) |
 | `mimeType` | Detect MIME type |
-| `downloadPdf` | Download PDF as Blob (optional `on_progress`) |
-| `downloadJpeg` | Download JPEG as Blob (optional `on_progress`) |
-| `downloadPng` | Download PNG as Blob (optional `on_progress`) |
-| `downloadOdt` | Download ODT as Blob (optional `on_progress`) |
-| `downloadUnvalidated` | Download unvalidated file, e.g. email body (optional `on_progress`) |
+| `downloadPdf` | Download PDF as Blob (optional `onProgress`) |
+| `downloadJpeg` | Download JPEG as Blob (optional `onProgress`) |
+| `downloadPng` | Download PNG as Blob (optional `onProgress`) |
+| `downloadOdt` | Download ODT as Blob (optional `onProgress`) |
+| `downloadUnvalidated` | Download unvalidated file, e.g. email body (optional `onProgress`) |
 
 
 

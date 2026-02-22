@@ -54,10 +54,10 @@ export type HttpErrorResponse = z.infer<typeof HttpErrorResponseSchema>;
  */
 export class ApiErrorException extends Error {
   constructor(
-    public status_code: number,
-    public api_error: ApiError,
+    public statusCode: number,
+    public apiError: ApiError,
   ) {
-    const message = `[${api_error.code}] ${api_error.name}: ${api_error.message}`;
+    const message = `[${apiError.code}] ${apiError.name}: ${apiError.message}`;
     super(message);
     this.name = "ApiErrorException";
     Object.setPrototypeOf(this, ApiErrorException.prototype);

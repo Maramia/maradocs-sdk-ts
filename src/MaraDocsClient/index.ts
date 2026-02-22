@@ -37,16 +37,16 @@ export class MaraDocsClient {
 }
 
 export class WorkspaceInfo {
-    public readonly account_id: string;
+    public readonly accountId: string;
     public readonly subaccount: string | undefined;
-    public readonly workspace_id: string;
-    public readonly encryption_key: Uint8Array;
+    public readonly workspaceId: string;
+    public readonly encryptionKey: Uint8Array;
 
-    constructor(workspace_secret_key: string) {
-        const workspace_info = decodeWorkspaceInfo(workspace_secret_key);
-        this.account_id = workspace_info.account_id;
-        this.subaccount = workspace_info.subaccount ?? undefined;
-        this.workspace_id = workspace_info.workspace_id;
-        this.encryption_key = parseEncryptionKey(workspace_info);
+    constructor(workspaceSecret: string) {
+        const workspaceInfo = decodeWorkspaceInfo(workspaceSecret);
+        this.accountId = workspaceInfo.account_id;
+        this.subaccount = workspaceInfo.subaccount ?? undefined;
+        this.workspaceId = workspaceInfo.workspace_id;
+        this.encryptionKey = parseEncryptionKey(workspaceInfo);
     }
 }

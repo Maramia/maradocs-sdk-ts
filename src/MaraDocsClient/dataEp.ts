@@ -13,12 +13,12 @@ export class DataEp {
   /**
    * Uploads a file to the server.
    * @param file The file to upload.
-   * @param on_progress A callback that is called with the upload progress. `percent` is a float between 0 and 100.
+   * @param onProgress A callback that is called with the upload progress. `percent` is a float between 0 and 100.
    * @returns The response from the server.
    */
   public async upload(
     file: File,
-    on_progress: (percent: number) => void = () => {},
+    onProgress: (percent: number) => void = () => {},
   ): Promise<data.DataUploadResponse> {
     const request = data.DataUploadRequestSchema.parse({
       size: file.size,
@@ -30,11 +30,11 @@ export class DataEp {
     );
 
     if (typeof XMLHttpRequest !== "undefined") {
-      return this.uploadWithXHR(file, response, on_progress);
+      return this.uploadWithXHR(file, response, onProgress);
     } else {
       // Fallback for Node.js environments
       let res = this.uploadWithFetch(file, response);
-      on_progress(100);
+      onProgress(100);
       return res;
     }
   }
@@ -46,7 +46,7 @@ export class DataEp {
   private async uploadWithXHR(
     file: File,
     response: data.DataUploadResponse,
-    on_progress: (percent: number) => void,
+    onProgress: (percent: number) => void,
   ): Promise<data.DataUploadResponse> {
     return new Promise<data.DataUploadResponse>((resolve, reject) => {
       const xhr = new XMLHttpRequest();
@@ -62,7 +62,7 @@ export class DataEp {
         if (event.lengthComputable) {
           const percent = (event.loaded / event.total) * 100;
           if (percent < 100) {
-            on_progress(percent);
+            onProgress(percent);
           }
         }
       };
@@ -85,7 +85,7 @@ export class DataEp {
           ),
         );
       xhr.send(formData);
-      xhr.onloadend = () => on_progress(100);
+      xhr.onloadend = () => onProgress(100);
     });
   }
 
@@ -141,7 +141,7 @@ export class DataEp {
 
   public async downloadPdf(
     req: data.DataDownloadPdfRequest,
-    on_progress: (percent: number) => void = () => {},
+    onProgress: (percent: number) => void = () => {},
   ): Promise<Blob> {
     const response = await this.wrap.post(
       "/data/download/pdf",
@@ -151,14 +151,14 @@ export class DataEp {
     const bytes = await this.downloadBinary(
       response.url,
       response.headers,
-      on_progress,
+      onProgress,
     );
     return new Blob([bytes], { type: "application/pdf" });
   }
 
   public async downloadJpeg(
     req: data.DataDownloadJpegRequest,
-    on_progress: (percent: number) => void = () => {},
+    onProgress: (percent: number) => void = () => {},
   ): Promise<Blob> {
     const response = await this.wrap.post(
       "/data/download/jpeg",
@@ -168,14 +168,14 @@ export class DataEp {
     const bytes = await this.downloadBinary(
       response.url,
       response.headers,
-      on_progress,
+      onProgress,
     );
     return new Blob([bytes], { type: "image/jpeg" });
   }
 
   public async downloadPng(
     req: data.DataDownloadPngRequest,
-    on_progress: (percent: number) => void = () => {},
+    onProgress: (percent: number) => void = () => {},
   ): Promise<Blob> {
     const response = await this.wrap.post(
       "/data/download/png",
@@ -185,14 +185,14 @@ export class DataEp {
     const bytes = await this.downloadBinary(
       response.url,
       response.headers,
-      on_progress,
+      onProgress,
     );
     return new Blob([bytes], { type: "image/png" });
   }
 
   public async downloadOdt(
     req: data.DataDownloadOdtRequest,
-    on_progress: (percent: number) => void = () => {},
+    onProgress: (percent: number) => void = () => {},
   ): Promise<Blob> {
     const response = await this.wrap.post(
       "/data/download/odt",
@@ -202,7 +202,7 @@ export class DataEp {
     const bytes = await this.downloadBinary(
       response.url,
       response.headers,
-      on_progress,
+      onProgress,
     );
     return new Blob([bytes], {
       type: "application/vnd.oasis.opendocument.text",
@@ -215,7 +215,7 @@ export class DataEp {
    */
   public async downloadUnvalidated(
     req: data.DataDownloadUnvalidatedRequest,
-    on_progress: (percent: number) => void = () => {},
+    onProgress: (percent: number) => void = () => {},
   ): Promise<Blob> {
     const response = await this.wrap.post(
       "/data/download/unvalidated",
@@ -225,7 +225,7 @@ export class DataEp {
     const bytes = await this.downloadBinary(
       response.url,
       response.headers,
-      on_progress,
+      onProgress,
     );
     return new Blob([bytes]);
   }
@@ -233,7 +233,7 @@ export class DataEp {
   private async downloadBinary(
     url: string,
     headers: Record<string, string>,
-    on_progress: (percent: number) => void,
+    onProgress: (percent: number) => void,
   ): Promise<ArrayBuffer> {
     const response = await fetch(url, { method: "GET", headers });
 
@@ -260,7 +260,7 @@ export class DataEp {
 
       chunks.push(value);
       loaded += value.length;
-      on_progress((loaded / total) * 100);
+      onProgress((loaded / total) * 100);
     }
 
     // Combine chunks into single ArrayBuffer
