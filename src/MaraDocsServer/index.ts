@@ -12,9 +12,18 @@ export class MaraDocsServer {
     workspace: WorkspaceEp;
     webview: WebviewEp;
 
-    constructor({ secretKey, apiUrlWithVersion }: { secretKey: string; apiUrlWithVersion?: string }) {
+    /**
+     * @param secretKey - The secret key for the MaraDocs server
+     * @param apiUrlWithVersion - The API URL with version. If not provided, the default API URL will be used.
+     * @param timeoutMs - Optional default timeout in milliseconds for each request.
+     */
+    constructor({ secretKey, apiUrlWithVersion, timeoutMs }: { secretKey: string; apiUrlWithVersion?: string; timeoutMs?: number }) {
         apiUrlWithVersion = apiUrlWithVersion ?? API_URL_V1;
-        let wrap = new FetchWrapper({ jwt: secretKey, apiUrlWithVersion });
+        let wrap = new FetchWrapper({
+            jwt: secretKey,
+            apiUrlWithVersion,
+            ...(timeoutMs != null && { timeoutMs }),
+        });
         this.healthcheck = new HealthcheckEp(wrap);
         this.account = new AccountEp(wrap);
         this.workspace = new WorkspaceEp(wrap);

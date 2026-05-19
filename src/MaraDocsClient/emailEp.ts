@@ -1,6 +1,7 @@
 import * as email from "../models/email";
 import { TaskCreatedResponseSchema } from "../models/misc";
 import { FetchWrapper } from "../shared/fetchWrapper";
+import type { RequestOptions } from "../shared/requestOptions";
 
 export class EmailEp {
   private wrap: FetchWrapper;
@@ -16,15 +17,19 @@ export class EmailEp {
    */
   public async validate(
     req: email.EmailValidateRequest,
+    options?: RequestOptions,
   ): Promise<email.EmailValidateResponse> {
+    const timeout = options?.timeout;
     const task = await this.wrap.post(
       "/email/validate",
       req,
       TaskCreatedResponseSchema,
+      timeout,
     );
     return this.wrap.pollResult(
       `/email/validate/${task.job_id}`,
       email.EmailValidateResponseSchema,
+      timeout,
     );
   }
 
@@ -34,15 +39,19 @@ export class EmailEp {
    */
   public async toHtml(
     req: email.EmailToHtmlRequest,
+    options?: RequestOptions,
   ): Promise<email.EmailToHtmlResponse> {
+    const timeout = options?.timeout;
     const task = await this.wrap.post(
       "/email/to/html",
       req,
       TaskCreatedResponseSchema,
+      timeout,
     );
     return this.wrap.pollResult(
       `/email/to/html/${task.job_id}`,
       email.EmailToHtmlResponseSchema,
+      timeout,
     );
   }
 
@@ -52,15 +61,19 @@ export class EmailEp {
    */
   public async toPdf(
     req: email.EmailToPdfRequest,
+    options?: RequestOptions,
   ): Promise<email.EmailToPdfResponse> {
+    const timeout = options?.timeout;
     const task = await this.wrap.post(
       "/email/to/pdf",
       req,
       TaskCreatedResponseSchema,
+      timeout,
     );
     return this.wrap.pollResult(
       `/email/to/pdf/${task.job_id}`,
       email.EmailToPdfResponseSchema,
+      timeout,
     );
   }
 }

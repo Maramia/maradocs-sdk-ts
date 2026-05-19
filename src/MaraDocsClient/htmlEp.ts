@@ -1,6 +1,7 @@
 import * as html from "../models/html";
 import { TaskCreatedResponseSchema } from "../models/misc";
 import { FetchWrapper } from "../shared/fetchWrapper";
+import type { RequestOptions } from "../shared/requestOptions";
 
 export class HtmlEp {
   private wrap: FetchWrapper;
@@ -16,15 +17,19 @@ export class HtmlEp {
    */
   public async validate(
     req: html.HtmlValidateRequest,
+    options?: RequestOptions,
   ): Promise<html.HtmlValidateResponse> {
+    const timeout = options?.timeout;
     const task = await this.wrap.post(
       "/html/validate",
       req,
       TaskCreatedResponseSchema,
+      timeout,
     );
     return this.wrap.pollResult(
       `/html/validate/${task.job_id}`,
       html.HtmlValidateResponseSchema,
+      timeout,
     );
   }
 
@@ -34,15 +39,19 @@ export class HtmlEp {
    */
   public async toPdf(
     req: html.HtmlToPdfRequest,
+    options?: RequestOptions,
   ): Promise<html.HtmlToPdfResponse> {
+    const timeout = options?.timeout;
     const task = await this.wrap.post(
       "/html/to/pdf",
       req,
       TaskCreatedResponseSchema,
+      timeout,
     );
     return this.wrap.pollResult(
       `/html/to/pdf/${task.job_id}`,
       html.HtmlToPdfResponseSchema,
+      timeout,
     );
   }
 }

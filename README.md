@@ -120,6 +120,22 @@ See [errors.ts](https://github.com/maramia/maradocs-sdk-typescript/blob/main/src
 | `toHtml` | Render validated email to HTML |
 | `toPdf` | Render validated email to PDF |
 
+### Video Operations (`client.video`)
+
+| Method | Description |
+|--------|-------------|
+| `validate` | Validate video |
+
+Validation returns source video/audio metadata and a discriminated result (`Ok`, `Error`, or `Virus`). Use `okVideo` to extract the handle on success.
+
+### Audio Operations (`client.audio`)
+
+| Method | Description |
+|--------|-------------|
+| `validate` | Validate audio |
+
+Validation returns source audio metadata and a discriminated result (`Ok`, `Error`, or `Virus`). Use `okAudio` to extract the handle on success.
+
 ### Data Operations (`client.data`)
 
 | Method | Description |
@@ -130,19 +146,25 @@ See [errors.ts](https://github.com/maramia/maradocs-sdk-typescript/blob/main/src
 | `downloadJpeg` | Download JPEG as Blob (optional `onProgress`) |
 | `downloadPng` | Download PNG as Blob (optional `onProgress`) |
 | `downloadOdt` | Download ODT as Blob (optional `onProgress`) |
+| `downloadMp4` | Download video as MP4 as Blob (optional `onProgress`) |
+| `downloadMp3` | Download audio as MP3 as Blob (optional `onProgress`) |
+| `downloadWav` | Download audio as WAV as Blob (optional `onProgress`) |
+| `downloadFlac` | Download audio as FLAC as Blob (optional `onProgress`) |
 | `downloadUnvalidated` | Download unvalidated file, e.g. email body (optional `onProgress`) |
 
 
 
 ## Validation and helpers
 
-Uploaded files must be validated before use. Validation responses are discriminated unions (`Ok`, `Error`, or `Virus`). Use the `okPdf`, `okImg`, `okHtml`, and `okEmail` helpers to extract the handle from a successful response—they throw `ValidationErrorException` or `ValidationVirusException` on failure:
+Uploaded files must be validated before use. Validation responses are discriminated unions (`Ok`, `Error`, or `Virus`). Use the `okPdf`, `okImg`, `okHtml`, `okEmail`, `okVideo`, and `okAudio` helpers to extract the handle from a successful response—they throw `ValidationErrorException` or `ValidationVirusException` on failure:
 
 ```typescript
 import { okPdf } from "@maramia/maradocs-sdk-ts/models/pdf";
 import { okImg } from "@maramia/maradocs-sdk-ts/models/img";
 import { okHtml } from "@maramia/maradocs-sdk-ts/models/html";
 import { okEmail } from "@maramia/maradocs-sdk-ts/models/email";
+import { okVideo } from "@maramia/maradocs-sdk-ts/models/video";
+import { okAudio } from "@maramia/maradocs-sdk-ts/models/audio";
 
 const validated = await client.pdf.validate({ unvalidated_file_handle: uploaded.unvalidated_file_handle });
 const pdfHandle = okPdf(validated);  // throws if validation failed
@@ -175,6 +197,43 @@ const composed = await client.pdf.compose({
 
 // Download merged PDF
 const mergedPdf = await client.data.downloadPdf({ pdf_handle: composed.pdf_handle });
+```
+
+### Validate and Download Video
+
+```typescript
+import { okVideo } from "@maramia/maradocs-sdk-ts/models/video";
+
+// Upload and validate
+const uploaded = await client.data.upload(videoFile);
+const validated = await client.video.validate({
+  unvalidated_file_handle: uploaded.unvalidated_file_handle,
+});
+const videoHandle = okVideo(validated);
+
+// Download as MP4 (transcodes with optional CFR, audio codec, and bitrate settings)
+const mp4Blob = await client.data.downloadMp4(
+  { video_handle: videoHandle },
+  (percent) => console.log(`Download ${percent}%`),
+);
+```
+
+### Validate and Download Audio
+
+```typescript
+import { okAudio } from "@maramia/maradocs-sdk-ts/models/audio";
+
+// Upload and validate
+const uploaded = await client.data.upload(audioFile);
+const validated = await client.audio.validate({
+  unvalidated_file_handle: uploaded.unvalidated_file_handle,
+});
+const audioHandle = okAudio(validated);
+
+// Download in a chosen format (MP3, WAV, or FLAC)
+const mp3Blob = await client.data.downloadMp3({ audio_handle: audioHandle });
+const wavBlob = await client.data.downloadWav({ audio_handle: audioHandle, bit_depth: "S24" });
+const flacBlob = await client.data.downloadFlac({ audio_handle: audioHandle, compression_level: 8 });
 ```
 
 ### Low-Level Image Processing

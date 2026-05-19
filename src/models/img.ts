@@ -205,6 +205,34 @@ export const ImgRotateResponseSchema = z
 export type ImgRotateResponse = z.infer<typeof ImgRotateResponseSchema>;
 
 // ============================================================================
+// Image Contrast Improvement
+// ============================================================================
+
+/**
+ * Request to improve contrast for document images (remove shadows, correct lighting)
+ */
+export const ImgImproveContrastRequestSchema = z
+  .object({
+    img_handle: ImgHandleSchema.describe("Handle to the image to enhance"),
+  })
+  .describe("Image contrast improvement request");
+export type ImgImproveContrastRequest = z.infer<
+  typeof ImgImproveContrastRequestSchema
+>;
+
+/**
+ * Response to an image contrast improvement request
+ */
+export const ImgImproveContrastResponseSchema = z
+  .object({
+    img_handle: ImgHandleSchema.describe("Handle to the enhanced image"),
+  })
+  .describe("Image contrast improvement response");
+export type ImgImproveContrastResponse = z.infer<
+  typeof ImgImproveContrastResponseSchema
+>;
+
+// ============================================================================
 // Thumbnail Generation
 // ============================================================================
 

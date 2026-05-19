@@ -1,6 +1,7 @@
 import * as pdf from "../models/pdf";
 import { TaskCreatedResponseSchema } from "../models/misc";
 import { FetchWrapper } from "../shared/fetchWrapper";
+import type { RequestOptions } from "../shared/requestOptions";
 
 export class PdfEp {
   private wrap: FetchWrapper;
@@ -16,15 +17,19 @@ export class PdfEp {
    */
   public async validate(
     req: pdf.PdfValidateRequest,
+    options?: RequestOptions,
   ): Promise<pdf.PdfValidateResponse> {
+    const timeout = options?.timeout;
     const task = await this.wrap.post(
       "/pdf/validate",
       req,
       TaskCreatedResponseSchema,
+      timeout,
     );
     return this.wrap.pollResult(
       `/pdf/validate/${task.job_id}`,
       pdf.PdfValidateResponseSchema,
+      timeout,
     );
   }
 
@@ -35,15 +40,19 @@ export class PdfEp {
    */
   public async compose(
     req: pdf.PdfComposeRequest,
+    options?: RequestOptions,
   ): Promise<pdf.PdfComposeResponse> {
+    const timeout = options?.timeout;
     const task = await this.wrap.post(
       "/pdf/compose",
       req,
       TaskCreatedResponseSchema,
+      timeout,
     );
     return this.wrap.pollResult(
       `/pdf/compose/${task.job_id}`,
       pdf.PdfComposeResponseSchema,
+      timeout,
     );
   }
 
@@ -53,15 +62,19 @@ export class PdfEp {
    */
   public async optimize(
     req: pdf.PdfOptimizeRequest,
+    options?: RequestOptions,
   ): Promise<pdf.PdfOptimizeResponse> {
+    const timeout = options?.timeout;
     const task = await this.wrap.post(
       "/pdf/optimize",
       req,
       TaskCreatedResponseSchema,
+      timeout,
     );
     return this.wrap.pollResult(
       `/pdf/optimize/${task.job_id}`,
       pdf.PdfOptimizeResponseSchema,
+      timeout,
     );
   }
 
@@ -72,15 +85,19 @@ export class PdfEp {
    */
   public async rotate(
     req: pdf.PdfRotateRequest,
+    options?: RequestOptions,
   ): Promise<pdf.PdfRotateResponse> {
+    const timeout = options?.timeout;
     const task = await this.wrap.post(
       "/pdf/rotate",
       req,
       TaskCreatedResponseSchema,
+      timeout,
     );
     return this.wrap.pollResult(
       `/pdf/rotate/${task.job_id}`,
       pdf.PdfRotateResponseSchema,
+      timeout,
     );
   }
 
@@ -89,15 +106,21 @@ export class PdfEp {
    * To create thumbnails of PDFs use:  toImg -> thumbnail -> toJpeg.
    * Creates task and polls for result automatically.
    */
-  public async toImg(req: pdf.PdfToImgRequest): Promise<pdf.PdfToImgResponse> {
+  public async toImg(
+    req: pdf.PdfToImgRequest,
+    options?: RequestOptions,
+  ): Promise<pdf.PdfToImgResponse> {
+    const timeout = options?.timeout;
     const task = await this.wrap.post(
       "/pdf/to/img",
       req,
       TaskCreatedResponseSchema,
+      timeout,
     );
     return this.wrap.pollResult(
       `/pdf/to/img/${task.job_id}`,
       pdf.PdfToImgResponseSchema,
+      timeout,
     );
   }
 
@@ -108,15 +131,19 @@ export class PdfEp {
    */
   public async orientation(
     req: pdf.PdfOrientationRequest,
+    options?: RequestOptions,
   ): Promise<pdf.PdfOrientationResponse> {
+    const timeout = options?.timeout;
     const task = await this.wrap.post(
       "/pdf/orientation",
       req,
       TaskCreatedResponseSchema,
+      timeout,
     );
     return this.wrap.pollResult(
       `/pdf/orientation/${task.job_id}`,
       pdf.PdfOrientationResponseSchema,
+      timeout,
     );
   }
 
@@ -126,15 +153,19 @@ export class PdfEp {
    */
   public async ocrToPdf(
     req: pdf.PdfOcrToPdfRequest,
+    options?: RequestOptions,
   ): Promise<pdf.PdfOcrToPdfResponse> {
+    const timeout = options?.timeout;
     const task = await this.wrap.post(
       "/pdf/ocr/pdf",
       req,
       TaskCreatedResponseSchema,
+      timeout,
     );
     return this.wrap.pollResult(
       `/pdf/ocr/pdf/${task.job_id}`,
       pdf.PdfOcrToPdfResponseSchema,
+      timeout,
     );
   }
 }

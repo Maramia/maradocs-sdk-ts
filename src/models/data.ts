@@ -4,6 +4,7 @@
  */
 import { z } from "zod/v4";
 import {
+  AudioHandleSchema,
   PdfHandleSchema,
   JpegHandleSchema,
   PngHandleSchema,
@@ -11,7 +12,20 @@ import {
   UnvalidatedFileHandleSchema,
   OdtHandleSchema,
   Str255Schema,
+  VideoHandleSchema,
 } from "./misc";
+import {
+  AudioContainerFormatSchema,
+  AudioFlacCompressionLevelSchema,
+  AudioMp3BitrateSchema,
+  AudioWavBitDepthSchema,
+} from "./audio";
+import {
+  VideoAudioBitrateSchema,
+  VideoAudioCodecSchema,
+  VideoConstantFrameRateSchema,
+  VideoContainerFormatSchema,
+} from "./video";
 
 const DEFAULT_EXPIRATION_TIME = 60 * 5; //  5 minutes
 const MAX_EXPIRATION_TIME = 60 * 60 * 24 * 7; // 7 days
@@ -84,6 +98,148 @@ export const DataDownloadPdfResponseSchema = z
   .describe("PDF download response");
 export type DataDownloadPdfResponse = z.infer<
   typeof DataDownloadPdfResponseSchema
+>;
+
+// ============================================================================
+// Download - MP4
+// ============================================================================
+
+/**
+ * Request to export and download an MP4 video from the workspace
+ */
+export const DataDownloadMp4RequestSchema = z
+  .object({
+    video_handle: VideoHandleSchema.describe(
+      "Handle to the validated internal video file",
+    ),
+    constant_frame_rate: VideoConstantFrameRateSchema.default("CFR24").describe(
+      "Target CFR for the output video",
+    ),
+    audio_codec: VideoAudioCodecSchema.default("aac").describe(
+      "Audio codec for the output",
+    ),
+    audio_bitrate: VideoAudioBitrateSchema.default("CBR128K").describe(
+      "Audio bitrate for the output",
+    ),
+    format: VideoContainerFormatSchema.default("mp4").describe(
+      "Output container format (currently only mp4)",
+    ),
+    expires_in: ExpirationTimeSchema,
+  })
+  .describe("MP4 download request");
+export type DataDownloadMp4Request = z.input<typeof DataDownloadMp4RequestSchema>;
+
+/**
+ * Response to an MP4 download request
+ */
+export const DataDownloadMp4ResponseSchema = z
+  .object({
+    url: z.url().describe("Presigned GET URL to download the MP4"),
+    headers: z
+      .record(z.string(), z.string())
+      .describe("SSE-C headers to include in the GET request"),
+  })
+  .describe("MP4 download response");
+export type DataDownloadMp4Response = z.infer<
+  typeof DataDownloadMp4ResponseSchema
+>;
+
+// ============================================================================
+// Download - MP3
+// ============================================================================
+
+export const DataDownloadMp3RequestSchema = z
+  .object({
+    audio_handle: AudioHandleSchema.describe(
+      "Handle to the validated internal audio file",
+    ),
+    bitrate: AudioMp3BitrateSchema.default("CBR192K").describe(
+      "Target MP3 bitrate",
+    ),
+    format: AudioContainerFormatSchema.default("mp3").describe(
+      "Output container format (mp3)",
+    ),
+    expires_in: ExpirationTimeSchema,
+  })
+  .describe("MP3 download request");
+export type DataDownloadMp3Request = z.input<typeof DataDownloadMp3RequestSchema>;
+
+export const DataDownloadMp3ResponseSchema = z
+  .object({
+    url: z.url().describe("Presigned GET URL to download the MP3"),
+    headers: z
+      .record(z.string(), z.string())
+      .describe("SSE-C headers to include in the GET request"),
+  })
+  .describe("MP3 download response");
+export type DataDownloadMp3Response = z.infer<
+  typeof DataDownloadMp3ResponseSchema
+>;
+
+// ============================================================================
+// Download - WAV
+// ============================================================================
+
+export const DataDownloadWavRequestSchema = z
+  .object({
+    audio_handle: AudioHandleSchema.describe(
+      "Handle to the validated internal audio file",
+    ),
+    bit_depth: AudioWavBitDepthSchema.default("S16").describe(
+      "Target WAV bit depth",
+    ),
+    format: AudioContainerFormatSchema.default("wav").describe(
+      "Output container format (wav)",
+    ),
+    expires_in: ExpirationTimeSchema,
+  })
+  .describe("WAV download request");
+export type DataDownloadWavRequest = z.input<typeof DataDownloadWavRequestSchema>;
+
+export const DataDownloadWavResponseSchema = z
+  .object({
+    url: z.url().describe("Presigned GET URL to download the WAV"),
+    headers: z
+      .record(z.string(), z.string())
+      .describe("SSE-C headers to include in the GET request"),
+  })
+  .describe("WAV download response");
+export type DataDownloadWavResponse = z.infer<
+  typeof DataDownloadWavResponseSchema
+>;
+
+// ============================================================================
+// Download - FLAC
+// ============================================================================
+
+export const DataDownloadFlacRequestSchema = z
+  .object({
+    audio_handle: AudioHandleSchema.describe(
+      "Handle to the validated internal audio file",
+    ),
+    compression_level: AudioFlacCompressionLevelSchema.default(5).describe(
+      "Target FLAC compression level",
+    ),
+    format: AudioContainerFormatSchema.default("flac").describe(
+      "Output container format (flac)",
+    ),
+    expires_in: ExpirationTimeSchema,
+  })
+  .describe("FLAC download request");
+export type DataDownloadFlacRequest = z.input<
+  typeof DataDownloadFlacRequestSchema
+>;
+
+export const DataDownloadFlacResponseSchema = z
+  .object({
+    url: z.url().describe("Presigned GET URL to download the FLAC"),
+    headers: z
+      .record(z.string(), z.string())
+      .describe("SSE-C headers to include in the GET request"),
+  })
+  .describe("FLAC download response");
+export type DataDownloadFlacResponse = z.infer<
+  typeof DataDownloadFlacResponseSchema
 >;
 
 // ============================================================================
@@ -244,3 +400,33 @@ export const DataMediaTypeResponseSchema = z
   })
   .describe("Media type detection response");
 export type DataMediaTypeResponse = z.infer<typeof DataMediaTypeResponseSchema>;
+
+// ============================================================================
+// Virus Scan
+// ============================================================================
+
+/**
+ * Request to scan a file for viruses
+ */
+export const VirusScanRequestSchema = z
+  .object({
+    unvalidated_file_handle: UnvalidatedFileHandleSchema.describe(
+      "Handle to the file to scan",
+    ),
+  })
+  .describe("Virus scan request");
+export type VirusScanRequest = z.infer<typeof VirusScanRequestSchema>;
+
+/**
+ * Response to the virus scan request
+ */
+export const VirusScanResponseSchema = z
+  .object({
+    virus_found: z.boolean().describe("Whether a virus was found"),
+    virus_info: z
+      .string()
+      .nullish()
+      .describe("Information about the virus, if found"),
+  })
+  .describe("Virus scan response");
+export type VirusScanResponse = z.infer<typeof VirusScanResponseSchema>;

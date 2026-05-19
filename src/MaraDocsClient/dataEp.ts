@@ -2,6 +2,7 @@ import * as data from "../models/data";
 import { HttpErrorResponseSchema, ApiErrorException } from "../models/errors";
 import { TaskCreatedResponseSchema } from "../models/misc";
 import { FetchWrapper } from "../shared/fetchWrapper";
+import type { RequestOptions } from "../shared/requestOptions";
 
 export class DataEp {
   private wrap: FetchWrapper;
@@ -122,20 +123,47 @@ export class DataEp {
   }
 
   /**
+   * Scans an unvalidated file for viruses.
+   * Creates task and polls for result automatically.
+   * @experimental
+   */
+  public async virusScan(
+    req: data.VirusScanRequest,
+    options?: RequestOptions,
+  ): Promise<data.VirusScanResponse> {
+    const timeout = options?.timeout;
+    const task = await this.wrap.post(
+      "/data/virus_scan",
+      req,
+      TaskCreatedResponseSchema,
+      timeout,
+    );
+    return this.wrap.pollResult(
+      `/data/virus_scan/${task.job_id}`,
+      data.VirusScanResponseSchema,
+      timeout,
+    );
+  }
+
+  /**
    * Determines the MIME type of an unvalidated file.
    * Creates task and polls for result automatically.
    */
   public async mimeType(
     req: data.DataMediaTypeRequest,
+    options?: RequestOptions,
   ): Promise<data.DataMediaTypeResponse> {
+    const timeout = options?.timeout;
     const task = await this.wrap.post(
       "/data/mime_type",
       req,
       TaskCreatedResponseSchema,
+      timeout,
     );
     return this.wrap.pollResult(
       `/data/mime_type/${task.job_id}`,
       data.DataMediaTypeResponseSchema,
+      timeout,
     );
   }
 
@@ -154,6 +182,106 @@ export class DataEp {
       onProgress,
     );
     return new Blob([bytes], { type: "application/pdf" });
+  }
+
+  public async downloadMp4(
+    req: data.DataDownloadMp4Request,
+    onProgress: (percent: number) => void = () => {},
+    options?: RequestOptions,
+  ): Promise<Blob> {
+    const timeout = options?.timeout;
+    const task = await this.wrap.post(
+      "/data/download/mp4",
+      req,
+      TaskCreatedResponseSchema,
+      timeout,
+    );
+    const response = await this.wrap.pollResult(
+      `/data/download/mp4/${task.job_id}`,
+      data.DataDownloadMp4ResponseSchema,
+      timeout,
+    );
+    const bytes = await this.downloadBinary(
+      response.url,
+      response.headers,
+      onProgress,
+    );
+    return new Blob([bytes], { type: "video/mp4" });
+  }
+
+  public async downloadMp3(
+    req: data.DataDownloadMp3Request,
+    onProgress: (percent: number) => void = () => {},
+    options?: RequestOptions,
+  ): Promise<Blob> {
+    const timeout = options?.timeout;
+    const task = await this.wrap.post(
+      "/data/download/mp3",
+      req,
+      TaskCreatedResponseSchema,
+      timeout,
+    );
+    const response = await this.wrap.pollResult(
+      `/data/download/mp3/${task.job_id}`,
+      data.DataDownloadMp3ResponseSchema,
+      timeout,
+    );
+    const bytes = await this.downloadBinary(
+      response.url,
+      response.headers,
+      onProgress,
+    );
+    return new Blob([bytes], { type: "audio/mpeg" });
+  }
+
+  public async downloadWav(
+    req: data.DataDownloadWavRequest,
+    onProgress: (percent: number) => void = () => {},
+    options?: RequestOptions,
+  ): Promise<Blob> {
+    const timeout = options?.timeout;
+    const task = await this.wrap.post(
+      "/data/download/wav",
+      req,
+      TaskCreatedResponseSchema,
+      timeout,
+    );
+    const response = await this.wrap.pollResult(
+      `/data/download/wav/${task.job_id}`,
+      data.DataDownloadWavResponseSchema,
+      timeout,
+    );
+    const bytes = await this.downloadBinary(
+      response.url,
+      response.headers,
+      onProgress,
+    );
+    return new Blob([bytes], { type: "audio/wav" });
+  }
+
+  public async downloadFlac(
+    req: data.DataDownloadFlacRequest,
+    onProgress: (percent: number) => void = () => {},
+    options?: RequestOptions,
+  ): Promise<Blob> {
+    const timeout = options?.timeout;
+    const task = await this.wrap.post(
+      "/data/download/flac",
+      req,
+      TaskCreatedResponseSchema,
+      timeout,
+    );
+    const response = await this.wrap.pollResult(
+      `/data/download/flac/${task.job_id}`,
+      data.DataDownloadFlacResponseSchema,
+      timeout,
+    );
+    const bytes = await this.downloadBinary(
+      response.url,
+      response.headers,
+      onProgress,
+    );
+    return new Blob([bytes], { type: "audio/flac" });
   }
 
   public async downloadJpeg(
@@ -235,7 +363,15 @@ export class DataEp {
     headers: Record<string, string>,
     onProgress: (percent: number) => void,
   ): Promise<ArrayBuffer> {
-    const response = await fetch(url, { method: "GET", headers });
+    const requestInit: RequestInit = { method: "GET", headers };
+    const response = await fetch(url, requestInit);
+    return this.readResponseToArrayBuffer(response, onProgress);
+  }
+
+  private async readResponseToArrayBuffer(
+    response: Response,
+    onProgress: (percent: number) => void,
+  ): Promise<ArrayBuffer> {
 
     if (!response.ok) {
       throw new Error(`Download failed: ${response.status}`);

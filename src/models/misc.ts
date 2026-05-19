@@ -166,6 +166,66 @@ export const OdtHandleSchema = z.object({
 export type OdtHandle = z.infer<typeof OdtHandleSchema>;
 
 /**
+ * Detailed source audio metadata extracted during validation
+ */
+export const AudioMetadataSchema = z.object({
+  sample_rate_hz: z.number().int().positive().describe("Sample rate in Hz"),
+  channels: z.number().int().positive().describe("Number of channels"),
+  bit_depth: z.number().int().positive().describe("Audio bit depth"),
+  codec: z.string().describe("Source audio codec"),
+  container_format: z.string().describe("Source container format"),
+  bit_rate_kbps: z.number().int().positive().describe("Average bitrate in kbit/s"),
+}).describe("Source audio metadata");
+export type AudioMetadata = z.infer<typeof AudioMetadataSchema>;
+
+/**
+ * Detailed source video metadata extracted during validation
+ */
+export const VideoMetadataSchema = z.object({
+  frame_rate: z.number().describe("Source frame rate"),
+  codec: z.string().describe("Source video codec"),
+  container_format: z.string().describe("Source container format"),
+  bit_rate_kbps: z
+    .number()
+    .int()
+    .positive()
+    .nullable()
+    .describe("Average source bitrate in kbit/s"),
+  pixel_format: z.string().nullable().describe("Source pixel format"),
+}).describe("Source video metadata");
+export type VideoMetadata = z.infer<typeof VideoMetadataSchema>;
+
+/**
+ * Handle to a validated video in the workspace
+ */
+export const VideoHandleSchema = z.object({
+  signed_hash: SignedHashSchema,
+  file_handle: FileHandleSchema,
+  width: z.number().int().positive().describe("Width of the video in pixels"),
+  height: z.number().int().positive().describe("Height of the video in pixels"),
+  duration_ms: z
+    .number()
+    .int()
+    .positive()
+    .describe("Duration of the video in milliseconds"),
+}).describe("Handle to a validated video");
+export type VideoHandle = z.infer<typeof VideoHandleSchema>;
+
+/**
+ * Handle to a validated audio file in the workspace
+ */
+export const AudioHandleSchema = z.object({
+  signed_hash: SignedHashSchema,
+  file_handle: FileHandleSchema,
+  duration_ms: z
+    .number()
+    .int()
+    .positive()
+    .describe("Duration in milliseconds"),
+}).describe("Handle to a validated audio file");
+export type AudioHandle = z.infer<typeof AudioHandleSchema>;
+
+/**
  * Handle to an HTML file in the workspace that can be downloaded
  */
 export const HtmlHandleSchema = z.object({
@@ -210,6 +270,6 @@ export type JobId = z.infer<typeof JobIdSchema>;
  */
 export const TaskCreatedResponseSchema = z.object({
   job_id: JobIdSchema.describe("Unique identifier for the created job"),
-  milli_tokens_spent: z.number().int().positive().describe("Milli-tokens (1/1000th of a token) spent on task creation"),
+  tokens_spent: z.number().int().positive().describe("Tokens spent on task creation"),
 }).describe("Response for async task creation");
 export type TaskCreatedResponse = z.infer<typeof TaskCreatedResponseSchema>;

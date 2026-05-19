@@ -32,6 +32,12 @@ export * from "./webview";
 // PDF processing
 export * from "./pdf";
 
+// Video processing
+export * from "./video";
+
+// Audio processing
+export * from "./audio";
+
 // Image processing
 export * from "./img";
 
