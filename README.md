@@ -1,4 +1,7 @@
 # MaraDocs TypeScript SDK
+
+[![npm](https://img.shields.io/npm/v/@maramia/maradocs-sdk-ts.svg)](https://www.npmjs.com/package/@maramia/maradocs-sdk-ts)
+
 MaraDocs.io is a comprehensive document preparation tool that easily extracts documents from images typically sent by email.
 It transforms trashy photos into nice and usable pdfs and delivers virus checks, pdf conversion, ai text recognition and pdf compression along the way.
 Check out MaraDocs at https://maradocs.io.
@@ -67,7 +70,7 @@ try {
 }
 ```
 
-See [errors.ts](https://github.com/maramia/maradocs-sdk-typescript/blob/main/src/models/errors.ts) for all error codes.
+See [errors.ts](https://github.com/maramia/maradocs-sdk-ts/blob/main/src/models/errors.ts) for all error codes.
 
 ## API Reference
 
@@ -140,9 +143,11 @@ Validation returns source audio metadata and a discriminated result (`Ok`, `Erro
 
 | Method | Description |
 |--------|-------------|
-| `upload` | Upload file (optional `onProgress` callback) |
+| `createUpload` | Mint a **proxy-only** upload capability (`proxy_url` + `unvalidated_file_handle`) |
+| `upload` | Upload file via first-party presigned POST (optional `onProgress` callback) |
 | `mimeType` | Detect MIME type |
-| `downloadPdf` | Download PDF as Blob (optional `onProgress`) |
+| `createDownloadPdf` / `Jpeg` / `Png` / `Odt` / `Unvalidated` | Mint a **proxy-only** download capability (`proxy_url`) |
+| `downloadPdf` | Download PDF as Blob via first-party SSE-C URL (optional `onProgress`) |
 | `downloadJpeg` | Download JPEG as Blob (optional `onProgress`) |
 | `downloadPng` | Download PNG as Blob (optional `onProgress`) |
 | `downloadOdt` | Download ODT as Blob (optional `onProgress`) |
@@ -151,6 +156,22 @@ Validation returns source audio metadata and a discriminated result (`Ok`, `Erro
 | `downloadWav` | Download audio as WAV as Blob (optional `onProgress`) |
 | `downloadFlac` | Download audio as FLAC as Blob (optional `onProgress`) |
 | `downloadUnvalidated` | Download unvalidated file, e.g. email body (optional `onProgress`) |
+
+`create*` methods are for unauthenticated third parties — they always mint `proxy_url` and never expose SSE-C fields. `upload` / `download*` are first-party only:
+
+```typescript
+const { proxy_url, unvalidated_file_handle } = await client.data.createUpload({
+  size: file.size,
+  name: file.name,
+});
+// Third party: PUT proxy_url with raw body and Content-Length === size
+// Integrator: validate(unvalidated_file_handle) after upload
+
+const { proxy_url: downloadUrl } = await client.data.createDownloadPdf({
+  pdf_handle,
+});
+// Third party: GET downloadUrl (no SSE-C headers)
+```
 
 
 

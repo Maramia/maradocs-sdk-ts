@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.4.0] - 2026-08-17
+
+### Added
+
+- Optional `use_proxy` / `proxy_url` on the raw API models for the SSE-C encrypting/decrypting proxy.
+- `DataEp.createUpload` and `createDownloadPdf` / `Jpeg` / `Png` / `Odt` / `Unvalidated` always mint **proxy-only** capability URLs (`CreateUploadResult` / `CreateDownloadProxyResult`). They never return SSE-C `post_url`/`post_header` or `url`/`headers`. Callers share only `proxy_url` with unauthenticated third parties.
+- `CreateUploadResult` and `CreateDownloadProxyResult` re-exported from the package root.
+
+### Changed
+
+- **Breaking**: Maximum `expires_in` on download requests is now **1 hour** (was 7 days), matching the API.
+- `upload` / `download*` mint first-party URLs privately and strip `use_proxy` if present; they never call `create*`.
+
 ## [1.3.0] - 2026-05-19
 
 ### Added

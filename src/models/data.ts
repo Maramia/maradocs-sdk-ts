@@ -28,7 +28,7 @@ import {
 } from "./video";
 
 const DEFAULT_EXPIRATION_TIME = 60 * 5; //  5 minutes
-const MAX_EXPIRATION_TIME = 60 * 60 * 24 * 7; // 7 days
+const MAX_EXPIRATION_TIME = 60 * 60; // 1 hour
 const ExpirationTimeSchema = z
   .number()
   .int()
@@ -36,7 +36,34 @@ const ExpirationTimeSchema = z
   .max(MAX_EXPIRATION_TIME)
   .default(DEFAULT_EXPIRATION_TIME)
   .optional()
-  .describe("Number of seconds until the download URL expires");
+  .describe("Number of seconds until the download URL expires (max 1 hour)");
+
+const PROXY_THIRD_PARTY_WARNING =
+  "When the uploader/downloader is an unauthenticated third party (or any client that must not learn the workspace encryption key), you HAVE TO USE proxy_url and MUST NOT forward post_header/headers to that party.";
+
+const UseProxySchema = z
+  .boolean()
+  .optional()
+  .describe(
+    `If true, also mint a proxy_url that does not require SSE-C headers. ${PROXY_THIRD_PARTY_WARNING}`,
+  );
+
+const ProxyUrlSchema = z
+  .string()
+  .nullish()
+  .describe(
+    `Encrypting/decrypting proxy URL (no SSE-C headers required). Required for unauthenticated third parties. ${PROXY_THIRD_PARTY_WARNING}`,
+  );
+
+const DownloadResponseFields = {
+  url: z.url().describe("Presigned GET URL to download the file (first-party; requires headers)"),
+  headers: z
+    .record(z.string(), z.string())
+    .describe(
+      `SSE-C headers for the GET request (contains encryption key; first-party only). ${PROXY_THIRD_PARTY_WARNING}`,
+    ),
+  proxy_url: ProxyUrlSchema,
+};
 // ============================================================================
 // Upload
 // ============================================================================
@@ -48,6 +75,7 @@ export const DataUploadRequestSchema = z
   .object({
     name: Str255Schema.optional().describe("Name of the file"),
     size: z.number().int().positive().describe("Size of the file in bytes"),
+    use_proxy: UseProxySchema,
   })
   .describe("File upload request");
 export type DataUploadRequest = z.infer<typeof DataUploadRequestSchema>;
@@ -57,13 +85,16 @@ export type DataUploadRequest = z.infer<typeof DataUploadRequestSchema>;
  */
 export const DataUploadResponseSchema = z
   .object({
-    post_url: z.string().describe("Presigned POST URL for file upload"),
+    post_url: z.string().describe("Presigned POST URL for file upload (first-party)"),
     post_header: z
       .record(z.string(), z.string())
-      .describe("Headers to include in the POST request"),
+      .describe(
+        `Form fields for the presigned POST, including SSE-C key material (first-party only). ${PROXY_THIRD_PARTY_WARNING}`,
+      ),
     unvalidated_file_handle: UnvalidatedFileHandleSchema.describe(
       "Handle to the uploaded file",
     ),
+    proxy_url: ProxyUrlSchema,
   })
   .describe("File upload response");
 export type DataUploadResponse = z.infer<typeof DataUploadResponseSchema>;
@@ -79,6 +110,7 @@ export const DataDownloadPdfRequestSchema = z
   .object({
     pdf_handle: PdfHandleSchema.describe("Handle to the PDF file to download"),
     expires_in: ExpirationTimeSchema,
+    use_proxy: UseProxySchema,
   })
   .describe("PDF download request");
 export type DataDownloadPdfRequest = z.infer<
@@ -90,10 +122,7 @@ export type DataDownloadPdfRequest = z.infer<
  */
 export const DataDownloadPdfResponseSchema = z
   .object({
-    url: z.url().describe("Presigned GET URL to download the PDF"),
-    headers: z
-      .record(z.string(), z.string())
-      .describe("SSE-C headers to include in the GET request"),
+    ...DownloadResponseFields,
   })
   .describe("PDF download response");
 export type DataDownloadPdfResponse = z.infer<
@@ -125,6 +154,7 @@ export const DataDownloadMp4RequestSchema = z
       "Output container format (currently only mp4)",
     ),
     expires_in: ExpirationTimeSchema,
+    use_proxy: UseProxySchema,
   })
   .describe("MP4 download request");
 export type DataDownloadMp4Request = z.input<typeof DataDownloadMp4RequestSchema>;
@@ -134,10 +164,7 @@ export type DataDownloadMp4Request = z.input<typeof DataDownloadMp4RequestSchema
  */
 export const DataDownloadMp4ResponseSchema = z
   .object({
-    url: z.url().describe("Presigned GET URL to download the MP4"),
-    headers: z
-      .record(z.string(), z.string())
-      .describe("SSE-C headers to include in the GET request"),
+    ...DownloadResponseFields,
   })
   .describe("MP4 download response");
 export type DataDownloadMp4Response = z.infer<
@@ -160,16 +187,14 @@ export const DataDownloadMp3RequestSchema = z
       "Output container format (mp3)",
     ),
     expires_in: ExpirationTimeSchema,
+    use_proxy: UseProxySchema,
   })
   .describe("MP3 download request");
 export type DataDownloadMp3Request = z.input<typeof DataDownloadMp3RequestSchema>;
 
 export const DataDownloadMp3ResponseSchema = z
   .object({
-    url: z.url().describe("Presigned GET URL to download the MP3"),
-    headers: z
-      .record(z.string(), z.string())
-      .describe("SSE-C headers to include in the GET request"),
+    ...DownloadResponseFields,
   })
   .describe("MP3 download response");
 export type DataDownloadMp3Response = z.infer<
@@ -192,16 +217,14 @@ export const DataDownloadWavRequestSchema = z
       "Output container format (wav)",
     ),
     expires_in: ExpirationTimeSchema,
+    use_proxy: UseProxySchema,
   })
   .describe("WAV download request");
 export type DataDownloadWavRequest = z.input<typeof DataDownloadWavRequestSchema>;
 
 export const DataDownloadWavResponseSchema = z
   .object({
-    url: z.url().describe("Presigned GET URL to download the WAV"),
-    headers: z
-      .record(z.string(), z.string())
-      .describe("SSE-C headers to include in the GET request"),
+    ...DownloadResponseFields,
   })
   .describe("WAV download response");
 export type DataDownloadWavResponse = z.infer<
@@ -224,6 +247,7 @@ export const DataDownloadFlacRequestSchema = z
       "Output container format (flac)",
     ),
     expires_in: ExpirationTimeSchema,
+    use_proxy: UseProxySchema,
   })
   .describe("FLAC download request");
 export type DataDownloadFlacRequest = z.input<
@@ -232,10 +256,7 @@ export type DataDownloadFlacRequest = z.input<
 
 export const DataDownloadFlacResponseSchema = z
   .object({
-    url: z.url().describe("Presigned GET URL to download the FLAC"),
-    headers: z
-      .record(z.string(), z.string())
-      .describe("SSE-C headers to include in the GET request"),
+    ...DownloadResponseFields,
   })
   .describe("FLAC download response");
 export type DataDownloadFlacResponse = z.infer<
@@ -255,6 +276,7 @@ export const DataDownloadJpegRequestSchema = z
       "Handle to the JPEG file to download",
     ),
     expires_in: ExpirationTimeSchema,
+    use_proxy: UseProxySchema,
   })
   .describe("JPEG download request");
 export type DataDownloadJpegRequest = z.infer<
@@ -266,10 +288,7 @@ export type DataDownloadJpegRequest = z.infer<
  */
 export const DataDownloadJpegResponseSchema = z
   .object({
-    url: z.url().describe("Presigned GET URL to download the JPEG"),
-    headers: z
-      .record(z.string(), z.string())
-      .describe("SSE-C headers to include in the GET request"),
+    ...DownloadResponseFields,
   })
   .describe("JPEG download response");
 export type DataDownloadJpegResponse = z.infer<
@@ -287,6 +306,7 @@ export const DataDownloadPngRequestSchema = z
   .object({
     png_handle: PngHandleSchema.describe("Handle to the PNG file to download"),
     expires_in: ExpirationTimeSchema,
+    use_proxy: UseProxySchema,
   })
   .describe("PNG download request");
 export type DataDownloadPngRequest = z.infer<
@@ -298,10 +318,7 @@ export type DataDownloadPngRequest = z.infer<
  */
 export const DataDownloadPngResponseSchema = z
   .object({
-    url: z.url().describe("Presigned GET URL to download the PNG"),
-    headers: z
-      .record(z.string(), z.string())
-      .describe("SSE-C headers to include in the GET request"),
+    ...DownloadResponseFields,
   })
   .describe("PNG download response");
 export type DataDownloadPngResponse = z.infer<
@@ -319,6 +336,7 @@ export const DataDownloadOdtRequestSchema = z
   .object({
     odt_handle: OdtHandleSchema.describe("Handle to the ODT file to download"),
     expires_in: ExpirationTimeSchema,
+    use_proxy: UseProxySchema,
   })
   .describe("ODT download request");
 export type DataDownloadOdtRequest = z.infer<
@@ -330,10 +348,7 @@ export type DataDownloadOdtRequest = z.infer<
  */
 export const DataDownloadOdtResponseSchema = z
   .object({
-    url: z.url().describe("Presigned GET URL to download the ODT"),
-    headers: z
-      .record(z.string(), z.string())
-      .describe("SSE-C headers to include in the GET request"),
+    ...DownloadResponseFields,
   })
   .describe("ODT download response");
 export type DataDownloadOdtResponse = z.infer<
@@ -353,6 +368,7 @@ export const DataDownloadUnvalidatedRequestSchema = z
       "Handle to the unvalidated file",
     ),
     expires_in: ExpirationTimeSchema,
+    use_proxy: UseProxySchema,
   })
   .describe("Unvalidated file download request");
 export type DataDownloadUnvalidatedRequest = z.infer<
@@ -364,10 +380,7 @@ export type DataDownloadUnvalidatedRequest = z.infer<
  */
 export const DataDownloadUnvalidatedResponseSchema = z
   .object({
-    url: z.url().describe("Presigned GET URL to download the file"),
-    headers: z
-      .record(z.string(), z.string())
-      .describe("SSE-C headers to include in the GET request"),
+    ...DownloadResponseFields,
   })
   .describe("Unvalidated file download response");
 export type DataDownloadUnvalidatedResponse = z.infer<

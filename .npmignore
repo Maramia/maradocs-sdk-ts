@@ -1,13 +1,7 @@
 # Source files (will be compiled to dist)
 src/
 
-# Tests and test assets
-tests/
-assets/
-coverage/
-
 # Development files
-jest.config.js
 tsconfig.json
 pnpm-lock.yaml
 
@@ -28,12 +22,6 @@ pids
 *.pid
 *.seed
 *.pid.lock
-
-# Coverage directory used by tools like istanbul
-coverage/
-
-# nyc test coverage
-.nyc_output
 
 # Dependency directories
 node_modules/

@@ -1,8 +1,23 @@
+import { z } from "zod/v4";
 import * as data from "../models/data";
 import { HttpErrorResponseSchema, ApiErrorException } from "../models/errors";
-import { TaskCreatedResponseSchema } from "../models/misc";
+import {
+  TaskCreatedResponseSchema,
+  type UnvalidatedFileHandle,
+} from "../models/misc";
 import { FetchWrapper } from "../shared/fetchWrapper";
 import type { RequestOptions } from "../shared/requestOptions";
+
+/** Proxy-only download capability (no SSE-C url/headers). */
+export type CreateDownloadProxyResult = { proxy_url: string };
+
+/** Proxy-only upload capability + handle for later validate. */
+export type CreateUploadResult = {
+  proxy_url: string;
+  unvalidated_file_handle: UnvalidatedFileHandle;
+};
+
+type CreateUploadRequest = Omit<data.DataUploadRequest, "use_proxy">;
 
 export class DataEp {
   private wrap: FetchWrapper;
@@ -12,7 +27,28 @@ export class DataEp {
   }
 
   /**
-   * Uploads a file to the server.
+   * Mint a proxy upload capability URL for an unauthenticated third party.
+   * Always uses use_proxy; never returns post_url/post_header (SSE-C key material).
+   */
+  public async createUpload(req: CreateUploadRequest): Promise<CreateUploadResult> {
+    const request = data.DataUploadRequestSchema.parse({
+      ...req,
+      use_proxy: true,
+    });
+    const response = await this.wrap.post(
+      "/data/upload",
+      request,
+      data.DataUploadResponseSchema,
+    );
+    const proxy_url = this.requireProxyUrl(response.proxy_url, "upload");
+    return {
+      proxy_url,
+      unvalidated_file_handle: response.unvalidated_file_handle,
+    };
+  }
+
+  /**
+   * Uploads a file to the server via first-party presigned POST (no proxy).
    * @param file The file to upload.
    * @param onProgress A callback that is called with the upload progress. `percent` is a float between 0 and 100.
    * @returns The response from the server.
@@ -21,23 +57,30 @@ export class DataEp {
     file: File,
     onProgress: (percent: number) => void = () => {},
   ): Promise<data.DataUploadResponse> {
-    const request = data.DataUploadRequestSchema.parse({
-      size: file.size,
-    });
-    const response = await this.wrap.post(
-      "/data/upload",
-      request,
-      data.DataUploadResponseSchema,
-    );
+    const response = await this.mintUploadFirstParty({ size: file.size });
 
     if (typeof XMLHttpRequest !== "undefined") {
       return this.uploadWithXHR(file, response, onProgress);
     } else {
-      // Fallback for Node.js environments
-      let res = this.uploadWithFetch(file, response);
+      const res = await this.uploadWithFetch(file, response);
       onProgress(100);
       return res;
     }
+  }
+
+  /** First-party mint only (no use_proxy). */
+  private async mintUploadFirstParty(
+    req: CreateUploadRequest,
+  ): Promise<data.DataUploadResponse> {
+    const request = data.DataUploadRequestSchema.parse({
+      size: req.size,
+      ...(req.name != null ? { name: req.name } : {}),
+    });
+    return this.wrap.post(
+      "/data/upload",
+      request,
+      data.DataUploadResponseSchema,
+    );
   }
 
   /**
@@ -167,11 +210,25 @@ export class DataEp {
     );
   }
 
+  /**
+   * Mint a proxy download capability URL for an unauthenticated third party.
+   * Always uses use_proxy; returns only proxy_url (never SSE-C url/headers).
+   */
+  public async createDownloadPdf(
+    req: Omit<data.DataDownloadPdfRequest, "use_proxy">,
+  ): Promise<CreateDownloadProxyResult> {
+    return this.mintDownloadProxy(
+      "/data/download/pdf",
+      { ...req, use_proxy: true },
+      data.DataDownloadPdfResponseSchema,
+    );
+  }
+
   public async downloadPdf(
     req: data.DataDownloadPdfRequest,
     onProgress: (percent: number) => void = () => {},
   ): Promise<Blob> {
-    const response = await this.wrap.post(
+    const response = await this.mintDownloadFirstParty(
       "/data/download/pdf",
       req,
       data.DataDownloadPdfResponseSchema,
@@ -189,10 +246,12 @@ export class DataEp {
     onProgress: (percent: number) => void = () => {},
     options?: RequestOptions,
   ): Promise<Blob> {
+    req = { ...req, use_proxy: undefined };
     const timeout = options?.timeout;
+    const firstPartyReq = this.stripUseProxy(req);
     const task = await this.wrap.post(
       "/data/download/mp4",
-      req,
+      firstPartyReq,
       TaskCreatedResponseSchema,
       timeout,
     );
@@ -215,9 +274,10 @@ export class DataEp {
     options?: RequestOptions,
   ): Promise<Blob> {
     const timeout = options?.timeout;
+    const firstPartyReq = this.stripUseProxy(req);
     const task = await this.wrap.post(
       "/data/download/mp3",
-      req,
+      firstPartyReq,
       TaskCreatedResponseSchema,
       timeout,
     );
@@ -240,9 +300,10 @@ export class DataEp {
     options?: RequestOptions,
   ): Promise<Blob> {
     const timeout = options?.timeout;
+    const firstPartyReq = this.stripUseProxy(req);
     const task = await this.wrap.post(
       "/data/download/wav",
-      req,
+      firstPartyReq,
       TaskCreatedResponseSchema,
       timeout,
     );
@@ -265,9 +326,10 @@ export class DataEp {
     options?: RequestOptions,
   ): Promise<Blob> {
     const timeout = options?.timeout;
+    const firstPartyReq = this.stripUseProxy(req);
     const task = await this.wrap.post(
       "/data/download/flac",
-      req,
+      firstPartyReq,
       TaskCreatedResponseSchema,
       timeout,
     );
@@ -284,11 +346,24 @@ export class DataEp {
     return new Blob([bytes], { type: "audio/flac" });
   }
 
+  /**
+   * Mint a proxy download capability URL for an unauthenticated third party.
+   */
+  public async createDownloadJpeg(
+    req: Omit<data.DataDownloadJpegRequest, "use_proxy">,
+  ): Promise<CreateDownloadProxyResult> {
+    return this.mintDownloadProxy(
+      "/data/download/jpeg",
+      { ...req, use_proxy: true },
+      data.DataDownloadJpegResponseSchema,
+    );
+  }
+
   public async downloadJpeg(
     req: data.DataDownloadJpegRequest,
     onProgress: (percent: number) => void = () => {},
   ): Promise<Blob> {
-    const response = await this.wrap.post(
+    const response = await this.mintDownloadFirstParty(
       "/data/download/jpeg",
       req,
       data.DataDownloadJpegResponseSchema,
@@ -301,11 +376,24 @@ export class DataEp {
     return new Blob([bytes], { type: "image/jpeg" });
   }
 
+  /**
+   * Mint a proxy download capability URL for an unauthenticated third party.
+   */
+  public async createDownloadPng(
+    req: Omit<data.DataDownloadPngRequest, "use_proxy">,
+  ): Promise<CreateDownloadProxyResult> {
+    return this.mintDownloadProxy(
+      "/data/download/png",
+      { ...req, use_proxy: true },
+      data.DataDownloadPngResponseSchema,
+    );
+  }
+
   public async downloadPng(
     req: data.DataDownloadPngRequest,
     onProgress: (percent: number) => void = () => {},
   ): Promise<Blob> {
-    const response = await this.wrap.post(
+    const response = await this.mintDownloadFirstParty(
       "/data/download/png",
       req,
       data.DataDownloadPngResponseSchema,
@@ -318,11 +406,24 @@ export class DataEp {
     return new Blob([bytes], { type: "image/png" });
   }
 
+  /**
+   * Mint a proxy download capability URL for an unauthenticated third party.
+   */
+  public async createDownloadOdt(
+    req: Omit<data.DataDownloadOdtRequest, "use_proxy">,
+  ): Promise<CreateDownloadProxyResult> {
+    return this.mintDownloadProxy(
+      "/data/download/odt",
+      { ...req, use_proxy: true },
+      data.DataDownloadOdtResponseSchema,
+    );
+  }
+
   public async downloadOdt(
     req: data.DataDownloadOdtRequest,
     onProgress: (percent: number) => void = () => {},
   ): Promise<Blob> {
-    const response = await this.wrap.post(
+    const response = await this.mintDownloadFirstParty(
       "/data/download/odt",
       req,
       data.DataDownloadOdtResponseSchema,
@@ -338,14 +439,27 @@ export class DataEp {
   }
 
   /**
-   * Downloads an unvalidated file.
+   * Mint a proxy download capability URL for an unauthenticated third party.
+   */
+  public async createDownloadUnvalidated(
+    req: Omit<data.DataDownloadUnvalidatedRequest, "use_proxy">,
+  ): Promise<CreateDownloadProxyResult> {
+    return this.mintDownloadProxy(
+      "/data/download/unvalidated",
+      { ...req, use_proxy: true },
+      data.DataDownloadUnvalidatedResponseSchema,
+    );
+  }
+
+  /**
+   * Downloads an unvalidated file via first-party SSE-C URL.
    * Useful for downloading email body content (text_body, html_body).
    */
   public async downloadUnvalidated(
     req: data.DataDownloadUnvalidatedRequest,
     onProgress: (percent: number) => void = () => {},
   ): Promise<Blob> {
-    const response = await this.wrap.post(
+    const response = await this.mintDownloadFirstParty(
       "/data/download/unvalidated",
       req,
       data.DataDownloadUnvalidatedResponseSchema,
@@ -356,6 +470,46 @@ export class DataEp {
       onProgress,
     );
     return new Blob([bytes]);
+  }
+
+  private async mintDownloadProxy<
+    T extends { proxy_url?: string | null | undefined },
+  >(
+    path: string,
+    req: object,
+    schema: z.ZodType<T>,
+  ): Promise<CreateDownloadProxyResult> {
+    const response = await this.wrap.post(path, req, schema);
+    return { proxy_url: this.requireProxyUrl(response.proxy_url, "download") };
+  }
+
+  private async mintDownloadFirstParty<
+    T extends { url: string; headers: Record<string, string> },
+  >(
+    path: string,
+    req: { use_proxy?: boolean | undefined },
+    schema: z.ZodType<T>,
+  ): Promise<T> {
+    return this.wrap.post(path, this.stripUseProxy(req), schema);
+  }
+
+  private stripUseProxy<T extends { use_proxy?: boolean | undefined }>(
+    req: T,
+  ): Omit<T, "use_proxy"> {
+    const { use_proxy: _ignored, ...rest } = req;
+    return rest;
+  }
+
+  private requireProxyUrl(
+    proxyUrl: string | null | undefined,
+    kind: "upload" | "download",
+  ): string {
+    if (!proxyUrl) {
+      throw new Error(
+        `${kind} proxy mint returned no proxy_url`,
+      );
+    }
+    return proxyUrl;
   }
 
   private async downloadBinary(
@@ -377,12 +531,10 @@ export class DataEp {
       throw new Error(`Download failed: ${response.status}`);
     }
 
-    // Get total size from Content-Length header
     const contentLength = response.headers.get("Content-Length");
     const total = contentLength ? parseInt(contentLength, 10) : null;
 
     if (!total || !response.body) {
-      // Fallback: can't track progress, just download
       return response.arrayBuffer();
     }
 
@@ -399,7 +551,6 @@ export class DataEp {
       onProgress((loaded / total) * 100);
     }
 
-    // Combine chunks into single ArrayBuffer
     const result = new Uint8Array(loaded);
     let offset = 0;
     for (const chunk of chunks) {

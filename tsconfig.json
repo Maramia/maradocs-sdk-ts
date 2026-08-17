@@ -16,6 +16,7 @@
     "declarationMap": true,
     "sourceMap": true,
     "outDir": "./dist",
+    "rootDir": "./src",
     "removeComments": false,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
@@ -37,15 +38,10 @@
     "checkJs": true,
   },
   "include": [
-    "src/**/*",
-    "tests/**/*"
+    "src/**/*"
   ],
   "exclude": [
     "node_modules",
-    "dist",
-    "assets"
-  ],
-  "ts-node": {
-    "esm": true
-  }
+    "dist"
+  ]
 }
